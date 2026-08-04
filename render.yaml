@@ -103,6 +103,12 @@ services:
     buildFilter:
       paths:
         - frontend/**
+        # render.yaml must be in here too. VITE_API_BASE_URL below is baked
+        # into the bundle at build time, so a change to it is a change to the
+        # output — but a filter of frontend/** alone does not match a root
+        # file, so Render skips the rebuild and the old bundle stays live with
+        # the old value. That is exactly what happened on the first fix.
+        - render.yaml
     envVars:
       # Baked into the JS bundle at BUILD time, so it must already be correct
       # when the static site builds. `fromService` resolved to an empty string
