@@ -15,6 +15,11 @@ databases:
     databaseName: writechapchap
     user: writechapchap
     plan: free
+    # MUST match the region of wcc-api below. Render's internal database
+    # hostname (dpg-xxxx-a) only resolves within a single region's private
+    # network, so a database left in the default region makes `migrate` fail
+    # at build time with "could not translate host name".
+    region: frankfurt
 
 services:
   # ------------------------------------------------------------ Django API
@@ -42,13 +47,15 @@ services:
       # dropping them into a queue nothing is reading.
       - key: CELERY_TASK_ALWAYS_EAGER
         value: "True"
+      # Set this to the wcc-web URL in the dashboard after the first deploy.
+      # It cannot be wired with `fromService`: wcc-web already points back at
+      # wcc-api for VITE_API_BASE_URL, and Render cannot resolve a cycle — one
+      # side always references a service that has no URL yet. The API side is
+      # the one that loses, so it is filled in by hand.
       - key: FRONTEND_URL
-        fromService:
-          name: wcc-web
-          type: web
-          property: hostport
+        sync: false
       - key: CORS_ALLOWED_ORIGINS
-        sync: false # set to the static site URL after the first deploy
+        sync: false # optional: FRONTEND_URL alone is enough for the live site
       # Demo data is seeded on first build so the site isn't an empty shell.
       # Set this to False (and delete the demo users) before real traffic —
       # they all share a password published in the README.
