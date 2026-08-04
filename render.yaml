@@ -47,15 +47,15 @@ services:
       # dropping them into a queue nothing is reading.
       - key: CELERY_TASK_ALWAYS_EAGER
         value: "True"
-      # Set this to the wcc-web URL in the dashboard after the first deploy.
-      # It cannot be wired with `fromService`: wcc-web already points back at
-      # wcc-api for VITE_API_BASE_URL, and Render cannot resolve a cycle — one
-      # side always references a service that has no URL yet. The API side is
-      # the one that loses, so it is filled in by hand.
+      # Literal, not `fromService`. wcc-web already references wcc-api for
+      # VITE_API_BASE_URL, and Render cannot resolve a cycle — whichever side
+      # builds first sees a service that has no URL yet and silently gets an
+      # empty string. Hardcoding both directions is uglier but deterministic.
+      # Change these two URLs together if you rename the services.
       - key: FRONTEND_URL
-        sync: false
+        value: https://wcc-web.onrender.com
       - key: CORS_ALLOWED_ORIGINS
-        sync: false # optional: FRONTEND_URL alone is enough for the live site
+        value: https://wcc-web.onrender.com
       # Demo data is seeded on first build so the site isn't an empty shell.
       # Set this to False (and delete the demo users) before real traffic —
       # they all share a password published in the README.
@@ -104,11 +104,13 @@ services:
       paths:
         - frontend/**
     envVars:
+      # Baked into the JS bundle at BUILD time, so it must already be correct
+      # when the static site builds. `fromService` resolved to an empty string
+      # on the first deploy because wcc-api had no URL yet, which shipped a
+      # bundle calling relative /api/... — those hit the SPA rewrite below and
+      # returned index.html instead of JSON, so every request failed to parse.
       - key: VITE_API_BASE_URL
-        fromService:
-          name: wcc-api
-          type: web
-          property: hostport
+        value: https://wcc-api-5mhu.onrender.com
       - key: VITE_WHATSAPP_NUMBER
         sync: false
     routes:
