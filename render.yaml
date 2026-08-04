@@ -100,15 +100,12 @@ services:
     buildCommand: "npm ci && npm run build"
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
-    buildFilter:
-      paths:
-        - frontend/**
-        # render.yaml must be in here too. VITE_API_BASE_URL below is baked
-        # into the bundle at build time, so a change to it is a change to the
-        # output — but a filter of frontend/** alone does not match a root
-        # file, so Render skips the rebuild and the old bundle stays live with
-        # the old value. That is exactly what happened on the first fix.
-        - render.yaml
+    # No buildFilter on purpose. It cost two deploy cycles here: a filter of
+    # frontend/** does not match render.yaml, so changing VITE_API_BASE_URL
+    # (which is baked into the bundle at build time) was reported as a
+    # successful 13-second "deploy" that silently republished the old artifact
+    # with the old value. For a two-service repo the saved build minutes are
+    # not worth a deploy that lies about what it shipped.
     envVars:
       # Baked into the JS bundle at BUILD time, so it must already be correct
       # when the static site builds. `fromService` resolved to an empty string

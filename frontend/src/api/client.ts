@@ -15,6 +15,19 @@ function resolveBaseUrl(raw: string | undefined): string {
 
 const BASE_URL = resolveBaseUrl(import.meta.env.VITE_API_BASE_URL)
 
+// An empty base URL is correct in dev (Vite proxies /api) and catastrophic in
+// production: requests go to the static host, hit the SPA rewrite, and come
+// back as index.html — so every call dies on a JSON parse error rather than a
+// network error, and the app looks fine while doing nothing. This shipped
+// twice. Say so loudly instead.
+if (!BASE_URL && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname)) {
+  console.error(
+    '[Write Chap Chap] VITE_API_BASE_URL was empty at build time. Every API ' +
+      'call will return the SPA index.html instead of JSON. Set it on the ' +
+      'static site and trigger a real rebuild (not a cached republish).',
+  )
+}
+
 const ACCESS_KEY = 'wcc.access'
 const REFRESH_KEY = 'wcc.refresh'
 
