@@ -202,6 +202,13 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
+# The deployed frontend's origin. Kept in source alongside the dev origins
+# because relying on the host to inject it failed repeatedly — env vars
+# declared in render.yaml never reached the running service, leaving the API
+# rejecting every browser request from its own frontend. An env var still
+# overrides; this is the floor, not the ceiling. Update if the site is renamed.
+DEPLOYED_FRONTEND_ORIGIN = "https://wcc-web.onrender.com"
+
 CORS_ALLOWED_ORIGINS = [
     origin
     for origin in (
@@ -214,10 +221,13 @@ CORS_ALLOWED_ORIGINS = [
     )
     if origin
 ]
-# The deployed frontend must always be allowed, even if CORS_ALLOWED_ORIGINS
-# hasn't been filled in on the host yet.
-if FRONTEND_URL and FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
+
+for _origin in (FRONTEND_URL, DEPLOYED_FRONTEND_ORIGIN):
+    if _origin and _origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(_origin)
+
+if DEPLOYED_FRONTEND_ORIGIN not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(DEPLOYED_FRONTEND_ORIGIN)
 
 CORS_ALLOW_CREDENTIALS = True
 

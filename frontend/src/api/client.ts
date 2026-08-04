@@ -6,25 +6,42 @@
  * path, so normalise it to an absolute https:// origin and strip any trailing
  * slash (paths already start with one).
  */
+/**
+ * Deployed API origin, used when VITE_API_BASE_URL is absent at build time.
+ *
+ * Hardcoding a URL in source is not ideal, but this value has to be correct
+ * inside the bundle and four separate deploys failed to get the env var there
+ * — Render skipped builds, republished cached artifacts, and reported all of
+ * it as success. An env var still wins when present; this only stops a
+ * production build from silently shipping a frontend that cannot reach its
+ * own API. Change it if the API service is renamed.
+ */
+const DEPLOYED_API_ORIGIN = 'https://wcc-api-5mhu.onrender.com'
+
+function isLocalHost(): boolean {
+  return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname)
+}
+
 function resolveBaseUrl(raw: string | undefined): string {
   const value = (raw ?? '').trim()
-  if (!value) return ''
-  const withScheme = /^https?:\/\//i.test(value) ? value : `https://${value}`
-  return withScheme.replace(/\/+$/, '')
+  if (value) {
+    const withScheme = /^https?:\/\//i.test(value) ? value : `https://${value}`
+    return withScheme.replace(/\/+$/, '')
+  }
+  // Empty is correct in dev — Vite proxies /api to Django on the same origin.
+  return isLocalHost() ? '' : DEPLOYED_API_ORIGIN
 }
 
 const BASE_URL = resolveBaseUrl(import.meta.env.VITE_API_BASE_URL)
 
-// An empty base URL is correct in dev (Vite proxies /api) and catastrophic in
-// production: requests go to the static host, hit the SPA rewrite, and come
-// back as index.html — so every call dies on a JSON parse error rather than a
-// network error, and the app looks fine while doing nothing. This shipped
-// twice. Say so loudly instead.
-if (!BASE_URL && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname)) {
+// Should be unreachable now that a production fallback exists, but keep the
+// guard: an empty base URL outside dev means every request hits the SPA
+// rewrite and returns index.html, so calls fail on JSON parse rather than as
+// a network error and the app looks healthy while doing nothing.
+if (!BASE_URL && !isLocalHost()) {
   console.error(
-    '[Write Chap Chap] VITE_API_BASE_URL was empty at build time. Every API ' +
-      'call will return the SPA index.html instead of JSON. Set it on the ' +
-      'static site and trigger a real rebuild (not a cached republish).',
+    '[Write Chap Chap] No API base URL resolved. Every API call will return ' +
+      'the SPA index.html instead of JSON.',
   )
 }
 
