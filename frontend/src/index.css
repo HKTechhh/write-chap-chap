@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  * {
+    @apply border-ink-200;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink-50 text-ink-800 font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-tight text-ink-900;
+  }
+
+  /* Keyboard focus should be obvious; mouse focus should not shout. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white;
+  }
+
+  ::selection {
+    @apply bg-brand-600 text-white;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .card {
+    @apply rounded-2xl border border-ink-200/80 bg-white shadow-card;
+  }
+
+  .card-hover {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover hover:border-ink-300;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink-700;
+  }
+
+  .hint {
+    @apply mt-1.5 text-xs text-ink-500;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-ink-300 bg-white px-3.5 py-2.5 text-sm text-ink-900
+      placeholder:text-ink-400 transition-colors
+      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20
+      disabled:cursor-not-allowed disabled:bg-ink-100 disabled:text-ink-500;
+  }
+
+  .field-error {
+    @apply border-red-400 focus:border-red-500 focus:ring-red-500/20;
+  }
+
+  .link {
+    @apply font-medium text-brand-600 underline-offset-4 hover:text-brand-700 hover:underline;
+  }
+
+  /* Thin, unobtrusive scrollbars inside panels. */
+  .scroll-slim {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(203 213 225) transparent;
+  }
+  .scroll-slim::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scroll-slim::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink-300;
+  }
+  .scroll-slim::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-brand-600 via-brand-500 to-teal-500 bg-clip-text text-transparent;
+  }
+}
