@@ -222,6 +222,52 @@ cd backend
 
 ---
 
+## Deploying to Render
+
+`render.yaml` is a Blueprint that provisions the whole stack in one go: Postgres, Redis, the
+Django API, the React static site, and the Celery worker + beat scheduler.
+
+1. Push this repo to GitHub (Render deploys from a connected git remote).
+2. Render Dashboard → **New → Blueprint** → pick the repo. It reads `render.yaml`.
+3. Apply. First build runs `backend/render-build.sh`: installs deps, `collectstatic`,
+   `migrate`, then `seed_demo`.
+4. After the first deploy, set `CORS_ALLOWED_ORIGINS` on **wcc-api** to the static site's URL.
+
+### Cost and what degrades
+
+| Service | Plan | If you drop it |
+|---|---|---|
+| `wcc-db` (Postgres) | free | required |
+| `wcc-redis` | free | required by the workers only |
+| `wcc-api` (Django) | free | required |
+| `wcc-web` (static) | free | required |
+| `wcc-worker` (Celery) | **starter — paid** | screening falls back to running inline |
+| `wcc-beat` (scheduler) | **starter — paid** | no auto-approval, no late fines, no tier recalc |
+
+Render has no free background workers. Delete those two services from `render.yaml` for a
+zero-cost first deploy — the app degrades cleanly rather than erroring, because task dispatch
+falls back to inline execution (`apps/common/dispatch.py`). What you lose is the *scheduled*
+work: escrow won't auto-release after the 72h window and late fines won't fire.
+
+Also note free Postgres on Render expires after 30 days, and free web services spin down when
+idle (first request after a sleep takes ~30s).
+
+### Uploads need object storage
+
+Render's disk is ephemeral — deliverables, KYC documents and dispute evidence are wiped on
+every redeploy. Set `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and
+`AWS_S3_ENDPOINT_URL` (Cloudflare R2 works and has no egress fee) and Django switches to S3
+storage automatically. Files stay private and are served through time-limited signed URLs.
+
+### Before real users
+
+- Set `SEED_DEMO=false` on **wcc-api** so demo accounts stop being recreated, and delete the
+  seeded users — they all share a published password.
+- Add `GPTZERO_API_KEY` to enable real screening.
+- Add the M-Pesa and Flutterwave credentials to take real payments.
+
+---
+
 ## Roadmap position
 
 | Phase | Status |
