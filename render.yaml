@@ -1,13 +1,14 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
 #
-# Creates the whole stack: Postgres, Redis, the Django API, the React static
-# site, and the Celery worker + beat scheduler.
+# Free-tier deployment: Postgres, the Django API, and the React static site.
 #
-# NOTE ON PLANS: `starter` is used for the worker and beat services because
-# Render does not offer background workers on the free plan. If you want a
-# zero-cost first deploy, delete those two services — the app degrades
-# gracefully (screening runs inline; auto-approval and late fines simply don't
-# fire until you add a worker). Everything else runs on free.
+# There is deliberately NO Redis and NO Celery worker here. Render has no free
+# background workers, and a broker without a worker is worse than no broker at
+# all — `task.delay()` would succeed, queue the job, and nothing would ever
+# consume it, so screening would silently never run. Instead the API sets
+# CELERY_TASK_ALWAYS_EAGER=True, which makes tasks execute inline on the
+# request. To move to real background processing, see "SCALING UP" at the
+# bottom of this file.
 
 databases:
   - name: wcc-db
@@ -16,13 +17,6 @@ databases:
     plan: free
 
 services:
-  # ---------------------------------------------------------------- Redis
-  - type: redis
-    name: wcc-redis
-    plan: free
-    maxmemoryPolicy: noeviction # Celery must not lose queued tasks
-    ipAllowList: [] # internal-only: reachable from Render services, not the internet
-
   # ------------------------------------------------------------ Django API
   - type: web
     name: wcc-api
@@ -44,25 +38,22 @@ services:
         fromDatabase:
           name: wcc-db
           property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          name: wcc-redis
-          type: redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          name: wcc-redis
-          type: redis
-          property: connectionString
+      # No worker on the free plan: run queued tasks inline instead of
+      # dropping them into a queue nothing is reading.
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "True"
       - key: FRONTEND_URL
         fromService:
           name: wcc-web
           type: web
           property: hostport
       - key: CORS_ALLOWED_ORIGINS
-        sync: false # set to your static site URL after the first deploy
-      - key: WEB_CONCURRENCY
-        value: "2"
+        sync: false # set to the static site URL after the first deploy
+      # Demo data is seeded on first build so the site isn't an empty shell.
+      # Set this to False (and delete the demo users) before real traffic —
+      # they all share a password published in the README.
+      - key: SEED_DEMO
+        value: "True"
       # --- optional integrations: fill in via the dashboard when ready ---
       - key: GPTZERO_API_KEY
         sync: false
@@ -82,7 +73,9 @@ services:
         sync: false
       - key: WHATSAPP_SUPPORT_NUMBER
         sync: false
-      # --- S3-compatible media storage (see README: uploads vanish without it)
+      # --- S3-compatible media storage ---
+      # Render's disk is ephemeral: without these, every uploaded deliverable,
+      # KYC document and dispute attachment is wiped on each redeploy.
       - key: AWS_ACCESS_KEY_ID
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
@@ -113,7 +106,7 @@ services:
         sync: false
     routes:
       # SPA fallback: every non-asset path must serve index.html so deep links
-      # like /orders/12 work on a hard refresh.
+      # like /orders/12 survive a hard refresh.
       - type: rewrite
         source: /*
         destination: /index.html
@@ -121,73 +114,43 @@ services:
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
-
-  # ----------------------------------------------- Celery worker (paid plan)
-  - type: worker
-    name: wcc-worker
-    runtime: python
-    plan: starter
-    region: frankfurt
-    rootDir: backend
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "celery -A config worker --loglevel=info --concurrency=2"
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.12.7"
-      - key: SECRET_KEY
-        fromService:
-          name: wcc-api
-          type: web
-          envVarKey: SECRET_KEY
-      - key: DEBUG
-        value: "False"
-      - key: DATABASE_URL
-        fromDatabase:
-          name: wcc-db
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          name: wcc-redis
-          type: redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          name: wcc-redis
-          type: redis
-          property: connectionString
-      - key: GPTZERO_API_KEY
-        sync: false
-
-  # ------------------------------------- Celery beat scheduler (paid plan)
-  - type: worker
-    name: wcc-beat
-    runtime: python
-    plan: starter
-    region: frankfurt
-    rootDir: backend
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "celery -A config beat --loglevel=info"
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.12.7"
-      - key: SECRET_KEY
-        fromService:
-          name: wcc-api
-          type: web
-          envVarKey: SECRET_KEY
-      - key: DEBUG
-        value: "False"
-      - key: DATABASE_URL
-        fromDatabase:
-          name: wcc-db
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          name: wcc-redis
-          type: redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          name: wcc-redis
-          type: redis
-          property: connectionString
+# ---------------------------------------------------------------------------
+# SCALING UP — enabling real background processing
+#
+# What you're missing without a worker:
+#   * escrow does not auto-release after the 72h review window
+#   * late-delivery fines are never applied
+#   * writer tiers are not recalculated nightly
+# (Screening still runs — it just happens inline on upload rather than async.)
+#
+# To enable it, add a Key Value instance and two workers, then REMOVE the
+# CELERY_TASK_ALWAYS_EAGER env var from wcc-api above:
+#
+#   - type: keyvalue          # Render's managed Redis-compatible store
+#     name: wcc-redis
+#     plan: starter
+#     maxmemoryPolicy: noeviction   # Celery must not lose queued tasks
+#     ipAllowList: []               # internal-only, not exposed publicly
+#
+#   - type: worker
+#     name: wcc-worker
+#     runtime: python
+#     plan: starter
+#     rootDir: backend
+#     buildCommand: "pip install -r requirements.txt"
+#     startCommand: "celery -A config worker --loglevel=info --concurrency=2"
+#     envVars: [ same DATABASE_URL / SECRET_KEY / CELERY_BROKER_URL as the API ]
+#
+#   - type: worker
+#     name: wcc-beat
+#     runtime: python
+#     plan: starter
+#     rootDir: backend
+#     buildCommand: "pip install -r requirements.txt"
+#     startCommand: "celery -A config beat --loglevel=info"
+#     envVars: [ same as wcc-worker ]
+#
+# Both workers need CELERY_BROKER_URL and CELERY_RESULT_BACKEND pointing at
+# wcc-redis via `fromService: { name: wcc-redis, type: keyvalue,
+# property: connectionString }`.
+# ---------------------------------------------------------------------------

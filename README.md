@@ -233,24 +233,31 @@ Django API, the React static site, and the Celery worker + beat scheduler.
    `migrate`, then `seed_demo`.
 4. After the first deploy, set `CORS_ALLOWED_ORIGINS` on **wcc-api** to the static site's URL.
 
-### Cost and what degrades
+### Cost — the blueprint is entirely free tier
 
-| Service | Plan | If you drop it |
-|---|---|---|
-| `wcc-db` (Postgres) | free | required |
-| `wcc-redis` | free | required by the workers only |
-| `wcc-api` (Django) | free | required |
-| `wcc-web` (static) | free | required |
-| `wcc-worker` (Celery) | **starter — paid** | screening falls back to running inline |
-| `wcc-beat` (scheduler) | **starter — paid** | no auto-approval, no late fines, no tier recalc |
+| Service | Plan |
+|---|---|
+| `wcc-db` (Postgres) | free |
+| `wcc-api` (Django) | free |
+| `wcc-web` (React static site) | free |
 
-Render has no free background workers. Delete those two services from `render.yaml` for a
-zero-cost first deploy — the app degrades cleanly rather than erroring, because task dispatch
-falls back to inline execution (`apps/common/dispatch.py`). What you lose is the *scheduled*
-work: escrow won't auto-release after the 72h window and late fines won't fire.
+There is deliberately **no Redis and no Celery worker**. Render has no free background workers,
+and a broker with no worker behind it is worse than no broker at all: `task.delay()` would
+succeed, queue the job, and nothing would ever consume it — screening would silently never run.
+So the API sets `CELERY_TASK_ALWAYS_EAGER=True` and tasks execute inline on the request instead.
 
-Also note free Postgres on Render expires after 30 days, and free web services spin down when
-idle (first request after a sleep takes ~30s).
+What that costs you — the *scheduled* work, not the screening:
+
+- Escrow does not auto-release after the 72h review window (clients must approve manually)
+- Late-delivery fines are never applied automatically
+- Writer tiers are not recalculated nightly
+
+AI/plagiarism screening still runs on every upload; it just happens inline rather than async.
+The "SCALING UP" comment block at the bottom of `render.yaml` has the exact services to add when
+you want the scheduled jobs.
+
+Two free-tier caveats worth knowing: free Postgres on Render expires after 30 days, and free web
+services spin down when idle, so the first request after a sleep takes ~30s.
 
 ### Uploads need object storage
 
