@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import Notification, notify
+from apps.common.dispatch import dispatch
 from apps.common.permissions import IsAdminRole
 from apps.payments.models import InsufficientFunds
 
@@ -226,7 +227,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         )
 
         start_review_window(order)
-        scan_deliverable.delay(deliverable.pk)
+        # Screening must never block delivery — if no worker is running this
+        # falls back to scanning inline.
+        dispatch(scan_deliverable, deliverable.pk)
 
         notify(
             order.client,
@@ -713,5 +716,9 @@ class AdminFlaggedDeliverableViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="rescan")
     def rescan(self, request, pk=None):
-        scan_deliverable.delay(int(pk))
-        return Response({"detail": "Re-scan queued."})
+        outcome = dispatch(scan_deliverable, int(pk))
+        if outcome == "failed":
+            return _bad_request("Re-scan could not be started. Check the worker logs.")
+        return Response(
+            {"detail": "Re-scan queued." if outcome == "queued" else "Re-scan completed."}
+        )

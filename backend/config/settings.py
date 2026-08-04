@@ -9,7 +9,43 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY", default="dev-only-insecure-key-change-in-production")
 DEBUG = config("DEBUG", default=True, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
-FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
+
+def _as_origin(value):
+    """Managed hosts hand out bare `host:port`; CSRF/CORS need a scheme."""
+    value = (value or "").strip().rstrip("/")
+    if not value:
+        return ""
+    return value if value.startswith("http") else f"https://{value}"
+
+
+FRONTEND_URL = _as_origin(config("FRONTEND_URL", default="http://localhost:5173"))
+
+# Render injects the service's public hostname at runtime; without this the
+# deployed API would 400 every request with DisallowedHost.
+RENDER_EXTERNAL_HOSTNAME = config("RENDER_EXTERNAL_HOSTNAME", default="")
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+CSRF_TRUSTED_ORIGINS = [
+    origin
+    for origin in (
+        FRONTEND_URL,
+        f"https://{RENDER_EXTERNAL_HOSTNAME}" if RENDER_EXTERNAL_HOSTNAME else "",
+    )
+    if origin.startswith("http")
+]
+
+if not DEBUG:
+    # Render terminates TLS at its proxy, so Django only ever sees plain HTTP.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -67,17 +103,21 @@ ASGI_APPLICATION = "config.asgi.application"
 # ---------------------------------------------------------------- database
 _database_url = config("DATABASE_URL", default="")
 if _database_url:
-    from urllib.parse import urlparse
+    from urllib.parse import unquote, urlparse
 
     _parsed = urlparse(_database_url)
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": _parsed.path.lstrip("/"),
-            "USER": _parsed.username,
-            "PASSWORD": _parsed.password,
+            "NAME": unquote(_parsed.path.lstrip("/")),
+            # Managed providers generate passwords containing URL-escaped
+            # characters, so these have to be unquoted rather than used raw.
+            "USER": unquote(_parsed.username or ""),
+            "PASSWORD": unquote(_parsed.password or ""),
             "HOST": _parsed.hostname,
             "PORT": _parsed.port or 5432,
+            "CONN_MAX_AGE": config("CONN_MAX_AGE", default=600, cast=int),
+            "OPTIONS": {"sslmode": config("DB_SSLMODE", default="require")},
         }
     }
 else:
@@ -104,9 +144,30 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
+
+# Managed hosts give you an ephemeral disk: anything a user uploads is lost on
+# the next deploy. Point these at S3/R2/Spaces and uploads survive.
+AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="")
+if AWS_STORAGE_BUCKET_NAME:
+    AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
+    AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
+    AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default="") or None
+    AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="auto")
+    AWS_S3_CUSTOM_DOMAIN = config("AWS_S3_CUSTOM_DOMAIN", default="") or None
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None
+    # Deliverables, KYC documents and dispute evidence are private by design —
+    # they are served through time-limited signed URLs, never public reads.
+    AWS_QUERYSTRING_AUTH = True
+    AWS_QUERYSTRING_EXPIRE = config("AWS_QUERYSTRING_EXPIRE", default=3600, cast=int)
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -141,11 +202,23 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
-CORS_ALLOWED_ORIGINS = config(
-    "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:5173,http://127.0.0.1:5173",
-    cast=Csv(),
-)
+CORS_ALLOWED_ORIGINS = [
+    origin
+    for origin in (
+        _as_origin(value)
+        for value in config(
+            "CORS_ALLOWED_ORIGINS",
+            default="http://localhost:5173,http://127.0.0.1:5173",
+            cast=Csv(),
+        )
+    )
+    if origin
+]
+# The deployed frontend must always be allowed, even if CORS_ALLOWED_ORIGINS
+# hasn't been filled in on the host yet.
+if FRONTEND_URL and FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
+
 CORS_ALLOW_CREDENTIALS = True
 
 # ---------------------------------------------------------------- celery

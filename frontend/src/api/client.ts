@@ -1,4 +1,19 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
+/**
+ * Empty in development — Vite proxies /api to Django.
+ *
+ * In production this is the API service's address. Render supplies it as a
+ * bare `host:port` with no scheme, which `fetch` would treat as a relative
+ * path, so normalise it to an absolute https:// origin and strip any trailing
+ * slash (paths already start with one).
+ */
+function resolveBaseUrl(raw: string | undefined): string {
+  const value = (raw ?? '').trim()
+  if (!value) return ''
+  const withScheme = /^https?:\/\//i.test(value) ? value : `https://${value}`
+  return withScheme.replace(/\/+$/, '')
+}
+
+const BASE_URL = resolveBaseUrl(import.meta.env.VITE_API_BASE_URL)
 
 const ACCESS_KEY = 'wcc.access'
 const REFRESH_KEY = 'wcc.refresh'

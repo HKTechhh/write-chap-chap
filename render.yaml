@@ -1,0 +1,193 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Creates the whole stack: Postgres, Redis, the Django API, the React static
+# site, and the Celery worker + beat scheduler.
+#
+# NOTE ON PLANS: `starter` is used for the worker and beat services because
+# Render does not offer background workers on the free plan. If you want a
+# zero-cost first deploy, delete those two services — the app degrades
+# gracefully (screening runs inline; auto-approval and late fines simply don't
+# fire until you add a worker). Everything else runs on free.
+
+databases:
+  - name: wcc-db
+    databaseName: writechapchap
+    user: writechapchap
+    plan: free
+
+services:
+  # ---------------------------------------------------------------- Redis
+  - type: redis
+    name: wcc-redis
+    plan: free
+    maxmemoryPolicy: noeviction # Celery must not lose queued tasks
+    ipAllowList: [] # internal-only: reachable from Render services, not the internet
+
+  # ------------------------------------------------------------ Django API
+  - type: web
+    name: wcc-api
+    runtime: python
+    plan: free
+    region: frankfurt # closest Render region to Kenya
+    rootDir: backend
+    buildCommand: "./render-build.sh"
+    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"
+    healthCheckPath: /api/check-requests/pricing/
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: SECRET_KEY
+        generateValue: true # Render generates and stores a strong secret
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wcc-db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: wcc-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          name: wcc-redis
+          type: redis
+          property: connectionString
+      - key: FRONTEND_URL
+        fromService:
+          name: wcc-web
+          type: web
+          property: hostport
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false # set to your static site URL after the first deploy
+      - key: WEB_CONCURRENCY
+        value: "2"
+      # --- optional integrations: fill in via the dashboard when ready ---
+      - key: GPTZERO_API_KEY
+        sync: false
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_SHORTCODE
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+      - key: MPESA_CALLBACK_URL
+        sync: false
+      - key: FLUTTERWAVE_PUBLIC_KEY
+        sync: false
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+      - key: WHATSAPP_SUPPORT_NUMBER
+        sync: false
+      # --- S3-compatible media storage (see README: uploads vanish without it)
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_STORAGE_BUCKET_NAME
+        sync: false
+      - key: AWS_S3_ENDPOINT_URL
+        sync: false
+
+  # -------------------------------------------------------- React frontend
+  - type: web
+    name: wcc-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: "npm ci && npm run build"
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    buildFilter:
+      paths:
+        - frontend/**
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          name: wcc-api
+          type: web
+          property: hostport
+      - key: VITE_WHATSAPP_NUMBER
+        sync: false
+    routes:
+      # SPA fallback: every non-asset path must serve index.html so deep links
+      # like /orders/12 work on a hard refresh.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+
+  # ----------------------------------------------- Celery worker (paid plan)
+  - type: worker
+    name: wcc-worker
+    runtime: python
+    plan: starter
+    region: frankfurt
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "celery -A config worker --loglevel=info --concurrency=2"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: SECRET_KEY
+        fromService:
+          name: wcc-api
+          type: web
+          envVarKey: SECRET_KEY
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wcc-db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: wcc-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          name: wcc-redis
+          type: redis
+          property: connectionString
+      - key: GPTZERO_API_KEY
+        sync: false
+
+  # ------------------------------------- Celery beat scheduler (paid plan)
+  - type: worker
+    name: wcc-beat
+    runtime: python
+    plan: starter
+    region: frankfurt
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "celery -A config beat --loglevel=info"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: SECRET_KEY
+        fromService:
+          name: wcc-api
+          type: web
+          envVarKey: SECRET_KEY
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wcc-db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: wcc-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          name: wcc-redis
+          type: redis
+          property: connectionString
