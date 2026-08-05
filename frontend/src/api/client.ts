@@ -22,11 +22,29 @@ function isLocalHost(): boolean {
   return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname)
 }
 
+/**
+ * A hostname the browser can actually resolve.
+ *
+ * Render's `property: hostport` yields an INTERNAL address — "wcc-api-5mhu:10000"
+ * — with no TLD, routable only inside Render's private network. A browser given
+ * that fails with ERR_NAME_NOT_RESOLVED. Anything without a dot is therefore
+ * unusable from a public page, `localhost` aside.
+ */
+function isPubliclyResolvable(hostname: string): boolean {
+  return hostname === 'localhost' || hostname.includes('.')
+}
+
 function resolveBaseUrl(raw: string | undefined): string {
   const value = (raw ?? '').trim()
   if (value) {
     const withScheme = /^https?:\/\//i.test(value) ? value : `https://${value}`
-    return withScheme.replace(/\/+$/, '')
+    try {
+      if (isPubliclyResolvable(new URL(withScheme).hostname)) {
+        return withScheme.replace(/\/+$/, '')
+      }
+    } catch {
+      // Unparseable — treat it as absent rather than trusting it.
+    }
   }
   // Empty is correct in dev — Vite proxies /api to Django on the same origin.
   return isLocalHost() ? '' : DEPLOYED_API_ORIGIN
