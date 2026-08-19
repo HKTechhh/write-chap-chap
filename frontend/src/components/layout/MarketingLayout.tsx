@@ -46,24 +46,28 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
             ))}
           </nav>
 
-          <div className="hidden items-center gap-2.5 md:flex">
+          {/* The toggle stays outside the md:flex group so it survives on
+              phones, where everything else collapses into the burger menu. */}
+          <div className="ml-auto flex items-center gap-2.5 md:ml-0">
             <ThemeToggle />
-            {user ? (
-              <Link to={homeFor(user.role)}>
-                <Button size="sm">Go to dashboard</Button>
-              </Link>
-            ) : (
-              <>
-                <Link to="/login">
-                  <Button variant="ghost" size="sm">
-                    Sign in
-                  </Button>
+            <div className="hidden items-center gap-2.5 md:flex">
+              {user ? (
+                <Link to={homeFor(user.role)}>
+                  <Button size="sm">Go to dashboard</Button>
                 </Link>
-                <Link to="/register?role=client">
-                  <Button size="sm">Get started</Button>
-                </Link>
-              </>
-            )}
+              ) : (
+                <>
+                  <Link to="/login">
+                    <Button variant="ghost" size="sm">
+                      Sign in
+                    </Button>
+                  </Link>
+                  <Link to="/register?role=client">
+                    <Button size="sm">Get started</Button>
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
 
           <button
