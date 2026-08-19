@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, Clock, Search, Send, Wand2 } from 'lucide-react'
+import { AlertTriangle, Clock, RefreshCw, Search, Send, Wand2 } from 'lucide-react'
 import { orders as ordersApi } from '@/api/endpoints'
 import { useAsync } from '@/hooks/useAsync'
 import { useAuth } from '@/context/AuthContext'
@@ -31,7 +31,7 @@ export default function BrowseOrders() {
   const [subject, setSubject] = useState('')
   const [target, setTarget] = useState<OrderListItem | null>(null)
 
-  const { data, loading, reload } = useAsync(
+  const { data, loading, error, reload } = useAsync(
     () => ordersApi.list({ tab: 'open', search, subject, page_size: 30 }),
     [search, subject],
   )
@@ -75,6 +75,18 @@ export default function BrowseOrders() {
             <Skeleton key={index} className="h-40 rounded-2xl" />
           ))}
         </div>
+      ) : error ? (
+        <Alert tone="danger" icon={<AlertTriangle className="h-4 w-4" />} title="Couldn't load open orders">
+          <p>{error}</p>
+          <button
+            type="button"
+            onClick={reload}
+            className="mt-2 inline-flex items-center gap-1.5 font-medium underline underline-offset-2"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Try again
+          </button>
+        </Alert>
       ) : data?.results.length ? (
         <>
           <p className="text-sm text-ink-500">
