@@ -38,13 +38,13 @@ export default function Landing() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden bg-ink-950">
+    <section className="relative overflow-hidden theme-fixed bg-ink-950">
       <div className="absolute inset-0 bg-mesh-brand" aria-hidden />
       <div
         className="absolute inset-0 bg-grid-faint [background-size:56px_56px]"
         aria-hidden
       />
-      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white to-transparent" aria-hidden />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-canvas to-transparent" aria-hidden />
 
       <div className="container-page relative py-20 sm:py-28">
         <div className="mx-auto max-w-3xl text-center">
@@ -125,7 +125,7 @@ function TrustStrip() {
     { icon: <Gavel className="h-4 w-4" />, label: 'Human dispute arbitration' },
   ]
   return (
-    <section className="border-b border-ink-200 bg-white">
+    <section className="border-b border-ink-200 bg-surface">
       <div className="container-page py-6">
         <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
           {items.map((item) => (
@@ -172,11 +172,13 @@ const STEPS = [
   },
 ] as const
 
+// `theme-fixed` because these are filled chips with a white glyph: the -600
+// stops flip to a pale tint in dark mode, which would erase the icon.
 const STEP_TONES = {
-  brand: 'from-brand-500 to-brand-600',
-  teal: 'from-teal-500 to-teal-600',
-  violet: 'from-violet-500 to-violet-600',
-  gold: 'from-gold-400 to-gold-500',
+  brand: 'theme-fixed from-brand-500 to-brand-600',
+  teal: 'theme-fixed from-teal-500 to-teal-600',
+  violet: 'theme-fixed from-violet-500 to-violet-600',
+  gold: 'theme-fixed from-gold-400 to-gold-500',
 }
 
 function HowItWorks() {
@@ -219,7 +221,7 @@ function HowItWorks() {
 
 function TwoSides() {
   return (
-    <section className="bg-white py-20 sm:py-24">
+    <section className="bg-surface py-20 sm:py-24">
       <div className="container-page">
         <SectionHeading
           eyebrow="Built for both sides"
@@ -229,9 +231,9 @@ function TwoSides() {
 
         <div className="mt-14 grid gap-6 lg:grid-cols-2">
           {/* Client */}
-          <div className="overflow-hidden rounded-3xl border border-brand-200 bg-gradient-to-br from-brand-50 via-white to-teal-50">
+          <div className="overflow-hidden rounded-3xl border border-brand-200 bg-gradient-to-br from-brand-50 via-surface to-teal-50">
             <div className="p-8">
-              <span className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wide text-white">
+              <span className="inline-flex items-center gap-2 rounded-full bg-solid-brand px-3.5 py-1.5 text-xs font-bold uppercase tracking-wide text-white">
                 <Wallet className="h-3.5 w-3.5" />
                 For clients
               </span>
@@ -258,7 +260,7 @@ function TwoSides() {
           </div>
 
           {/* Writer */}
-          <div className="overflow-hidden rounded-3xl border border-gold-200 bg-gradient-to-br from-gold-50 via-white to-orange-50">
+          <div className="overflow-hidden rounded-3xl border border-gold-200 bg-gradient-to-br from-gold-50 via-surface to-orange-50">
             <div className="p-8">
               <span className="inline-flex items-center gap-2 rounded-full bg-gold-500 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wide text-white">
                 <PenLine className="h-3.5 w-3.5" />
@@ -299,7 +301,7 @@ function FeatureLine({ children, tone }: { children: React.ReactNode; tone: 'bra
       <span
         className={cn(
           'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full',
-          tone === 'brand' ? 'bg-brand-600' : 'bg-gold-500',
+          tone === 'brand' ? 'bg-solid-brand' : 'bg-gold-500',
         )}
       >
         <svg viewBox="0 0 12 12" className="h-3 w-3 text-white" fill="none" aria-hidden>
@@ -321,7 +323,7 @@ function FeatureLine({ children, tone }: { children: React.ReactNode; tone: 'bra
 
 function Screening() {
   return (
-    <section className="bg-ink-950 py-20 sm:py-24">
+    <section className="theme-fixed bg-ink-950 py-20 sm:py-24">
       <div className="container-page">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
@@ -498,7 +500,7 @@ const FAQ = [
 
 function Faq() {
   return (
-    <section id="faq" className="scroll-mt-20 bg-white py-20 sm:py-24">
+    <section id="faq" className="scroll-mt-20 bg-surface py-20 sm:py-24">
       <div className="container-page max-w-3xl">
         <SectionHeading eyebrow="FAQ" title="Straight answers" />
         <div className="mt-12 divide-y divide-ink-200 border-y border-ink-200">
@@ -530,7 +532,7 @@ function Faq() {
 
 function FinalCta() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-teal-600 py-20">
+    <section className="theme-fixed relative overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-teal-600 py-20">
       <div className="absolute inset-0 bg-grid-faint [background-size:48px_48px] opacity-40" aria-hidden />
       <div className="container-page relative text-center">
         <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">

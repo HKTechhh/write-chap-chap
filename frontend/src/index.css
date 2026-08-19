@@ -2,9 +2,219 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Theme tokens. Channels are space-separated RGB triplets (not `rgb(...)`)
+ * because Tailwind wraps them as `rgb(var(--x) / <alpha-value>)` so that
+ * opacity modifiers like `bg-ink-950/50` keep working.
+ *
+ * The dark ramp is a ROLE inversion, not a numeric one: `ink-50` stays "the
+ * lightest-feeling surface" and `ink-900` stays "heading text", they just swap
+ * ends of the luminance scale. Pure inversion of the slate ramp was rejected —
+ * it puts the mid-tones in the wrong place and muddies body text.
+ */
 @layer base {
-  :root {
+  /*
+   * `.theme-fixed` pins a subtree to the light token values. It is for
+   * sections that are dark by DESIGN in both themes — the marketing hero, the
+   * footer, modal scrims — whose children are already written against the
+   * light ramp (`bg-ink-950` for the backdrop, `text-ink-300` for body copy).
+   * Letting those flip would invert a section that was never meant to move.
+   *
+   * It works by cascade, not source order: the vars are declared on the
+   * section itself, so they beat the ones inherited from `.dark` on <html>.
+   */
+  :root,
+  .theme-fixed {
     color-scheme: light;
+
+    --surface: 255 255 255;
+    --surface-raised: 255 255 255;
+
+    --ink-50: 248 250 252;
+    --ink-100: 241 245 249;
+    --ink-200: 226 232 240;
+    --ink-300: 203 213 225;
+    --ink-400: 148 163 184;
+    --ink-500: 100 116 139;
+    --ink-600: 71 85 105;
+    --ink-700: 51 65 85;
+    --ink-800: 30 41 59;
+    --ink-900: 15 23 42;
+    --ink-950: 2 6 23;
+
+    --brand-50: 238 242 255;
+    --brand-100: 224 231 255;
+    --brand-200: 199 210 254;
+    --brand-600: 79 70 229;
+    --brand-700: 67 56 202;
+    --brand-800: 55 48 163;
+    --brand-900: 49 46 129;
+
+    --gold-50: 255 251 235;
+    --gold-100: 254 243 199;
+    --gold-200: 253 230 138;
+    --gold-600: 217 119 6;
+    --gold-700: 180 83 9;
+    --gold-800: 146 64 14;
+    --gold-900: 120 53 15;
+
+    --teal-50: 240 253 250;
+    --teal-100: 204 251 241;
+    --teal-200: 153 246 228;
+    --teal-600: 13 148 136;
+    --teal-700: 15 118 110;
+    --teal-800: 17 94 89;
+    --teal-900: 19 78 74;
+
+    --emerald-50: 236 253 245;
+    --emerald-100: 209 250 229;
+    --emerald-200: 167 243 208;
+    --emerald-600: 5 150 105;
+    --emerald-700: 4 120 87;
+    --emerald-800: 6 95 70;
+    --emerald-900: 6 78 59;
+
+    --amber-50: 255 251 235;
+    --amber-100: 254 243 199;
+    --amber-200: 253 230 138;
+    --amber-600: 217 119 6;
+    --amber-700: 180 83 9;
+    --amber-800: 146 64 14;
+    --amber-900: 120 53 15;
+
+    --red-50: 254 242 242;
+    --red-100: 254 226 226;
+    --red-200: 254 202 202;
+    --red-600: 220 38 38;
+    --red-700: 185 28 28;
+    --red-800: 153 27 27;
+    --red-900: 127 29 29;
+
+    --violet-50: 245 243 255;
+    --violet-100: 237 233 254;
+    --violet-200: 221 214 254;
+    --violet-600: 124 58 237;
+    --violet-700: 109 40 217;
+    --violet-800: 91 33 182;
+    --violet-900: 76 29 149;
+
+    --orange-50: 255 247 237;
+
+    --sky-50: 240 249 255;
+    --sky-100: 224 242 254;
+    --sky-200: 186 230 253;
+    --sky-600: 2 132 199;
+    --sky-700: 3 105 161;
+    --sky-800: 7 89 133;
+    --sky-900: 12 74 110;
+
+    --shadow-rgb: 15 23 42;
+    --shadow-strength: 1;
+  }
+
+  /*
+   * Declared on :root ONLY — never inside `.theme-fixed`. It is the real page
+   * background, needed by elements that live inside a pinned dark section but
+   * have to blend into the page behind it (the fade under the landing hero).
+   * Putting it in the shared block would pin it too, and the fade would show a
+   * white band across a dark page.
+   */
+  :root {
+    --page-canvas: 248 250 252;
+  }
+
+  .dark {
+    color-scheme: dark;
+
+    /* Panels sit ABOVE the canvas (--ink-50), so they are lighter, not darker.
+       Inverting that reads as a hole punched in the page. */
+    --surface: 21 29 46;
+    --surface-raised: 27 36 56;
+
+    --ink-50: 11 17 32; /* page canvas */
+    --ink-100: 24 34 54; /* hover fill */
+    --ink-200: 36 49 74; /* hairline border */
+    --ink-300: 51 66 95; /* stronger border */
+    --ink-400: 122 137 158; /* muted icon */
+    --ink-500: 152 166 186; /* muted text  — 6.1:1 on canvas */
+    --ink-600: 178 189 205;
+    --ink-700: 201 210 222;
+    --ink-800: 223 229 238;
+    --ink-900: 241 245 249; /* headings */
+    --ink-950: 255 255 255;
+
+    --brand-50: 34 29 77;
+    --brand-100: 43 37 96;
+    --brand-200: 59 52 134;
+    --brand-600: 165 180 252;
+    --brand-700: 182 192 253;
+    --brand-800: 199 207 254;
+    --brand-900: 224 231 255;
+
+    --gold-50: 53 36 10;
+    --gold-100: 69 48 13;
+    --gold-200: 95 68 19;
+    --gold-600: 252 211 77;
+    --gold-700: 253 224 138;
+    --gold-800: 253 235 180;
+    --gold-900: 254 243 199;
+
+    --teal-50: 10 47 44;
+    --teal-100: 14 61 56;
+    --teal-200: 20 84 77;
+    --teal-600: 94 234 212;
+    --teal-700: 143 240 224;
+    --teal-800: 181 245 234;
+    --teal-900: 204 251 241;
+
+    --emerald-50: 10 47 34;
+    --emerald-100: 14 61 44;
+    --emerald-200: 19 84 60;
+    --emerald-600: 110 231 183;
+    --emerald-700: 155 238 205;
+    --emerald-800: 191 243 222;
+    --emerald-900: 209 250 229;
+
+    --amber-50: 54 37 8;
+    --amber-100: 70 49 11;
+    --amber-200: 97 69 17;
+    --amber-600: 252 211 77;
+    --amber-700: 253 224 138;
+    --amber-800: 253 235 180;
+    --amber-900: 254 243 199;
+
+    --red-50: 58 22 24;
+    --red-100: 75 27 30;
+    --red-200: 107 37 41;
+    --red-600: 252 165 165;
+    --red-700: 253 189 189;
+    --red-800: 254 210 210;
+    --red-900: 254 226 226;
+
+    --violet-50: 41 26 77;
+    --violet-100: 52 34 96;
+    --violet-200: 72 47 133;
+    --violet-600: 196 181 253;
+    --violet-700: 211 200 254;
+    --violet-800: 226 219 254;
+    --violet-900: 237 233 254;
+
+    --orange-50: 56 32 10;
+
+    --sky-50: 10 39 64;
+    --sky-100: 13 51 82;
+    --sky-200: 18 72 115;
+    --sky-600: 125 211 252;
+    --sky-700: 165 225 253;
+    --sky-800: 196 236 254;
+    --sky-900: 224 242 254;
+
+    --page-canvas: 11 17 32;
+
+    /* Black shadows vanish on a dark canvas; deepen them instead of dropping
+       them, so elevation still reads. */
+    --shadow-rgb: 0 0 0;
+    --shadow-strength: 3.5;
   }
 
   * {
@@ -28,9 +238,10 @@
     @apply font-display tracking-tight text-ink-900;
   }
 
-  /* Keyboard focus should be obvious; mouse focus should not shout. */
+  /* Keyboard focus should be obvious; mouse focus should not shout.
+     The offset tracks the canvas so the ring reads as a gap, not a white bar. */
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white;
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-ink-50;
   }
 
   ::selection {
@@ -44,7 +255,7 @@
   }
 
   .card {
-    @apply rounded-2xl border border-ink-200/80 bg-white shadow-card;
+    @apply rounded-2xl border border-ink-200/80 bg-surface shadow-card;
   }
 
   .card-hover {
@@ -60,7 +271,7 @@
   }
 
   .field {
-    @apply w-full rounded-xl border border-ink-300 bg-white px-3.5 py-2.5 text-sm text-ink-900
+    @apply w-full rounded-xl border border-ink-300 bg-surface px-3.5 py-2.5 text-sm text-ink-900
       placeholder:text-ink-400 transition-colors
       focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20
       disabled:cursor-not-allowed disabled:bg-ink-100 disabled:text-ink-500;
@@ -77,7 +288,7 @@
   /* Thin, unobtrusive scrollbars inside panels. */
   .scroll-slim {
     scrollbar-width: thin;
-    scrollbar-color: rgb(203 213 225) transparent;
+    scrollbar-color: rgb(var(--ink-300)) transparent;
   }
   .scroll-slim::-webkit-scrollbar {
     width: 6px;

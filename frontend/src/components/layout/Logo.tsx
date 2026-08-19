@@ -11,7 +11,7 @@ export function Logo({
 }) {
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
-      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 via-brand-600 to-teal-500 shadow-sm">
+      <span className="theme-fixed relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 via-brand-600 to-teal-500 shadow-sm">
         <svg viewBox="0 0 64 64" className="h-5 w-5" aria-hidden>
           <path d="M14 22h6l4 14 4-14h6l4 14 4-14h6l-7 22h-7l-3-11-3 11h-7z" fill="#fff" />
         </svg>

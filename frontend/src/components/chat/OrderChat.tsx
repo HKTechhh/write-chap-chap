@@ -164,7 +164,7 @@ export function OrderChat({ orderId, canPost }: { orderId: number; canPost: bool
                     className={cn(
                       'mt-1.5 inline-block rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
                       mine
-                        ? 'rounded-tr-sm bg-brand-600 text-white'
+                        ? 'rounded-tr-sm bg-solid-brand text-white'
                         : 'rounded-tl-sm bg-ink-100 text-ink-800',
                     )}
                   >
@@ -176,7 +176,7 @@ export function OrderChat({ orderId, canPost }: { orderId: number; canPost: bool
                         rel="noopener noreferrer"
                         className={cn(
                           'mt-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium',
-                          mine ? 'bg-white/15 hover:bg-white/25' : 'bg-white hover:bg-ink-50',
+                          mine ? 'bg-white/15 hover:bg-white/25' : 'bg-surface hover:bg-ink-50',
                         )}
                       >
                         <Paperclip className="h-3.5 w-3.5" />
@@ -199,7 +199,7 @@ export function OrderChat({ orderId, canPost }: { orderId: number; canPost: bool
 
       {/* Composer */}
       {canPost ? (
-        <div className="border-t border-ink-200 bg-white p-4">
+        <div className="border-t border-ink-200 bg-surface p-4">
           {blocked && <BlockedNotice info={blocked} onDismiss={() => setBlocked(null)} />}
           {!blocked && scan && !scan.clean && <ScanWarning scan={scan} />}
 
@@ -224,7 +224,7 @@ export function OrderChat({ orderId, canPost }: { orderId: number; canPost: bool
 
             <div
               className={cn(
-                'flex items-end gap-2 rounded-2xl border bg-white p-2 transition-colors',
+                'flex items-end gap-2 rounded-2xl border bg-surface p-2 transition-colors',
                 willBlock
                   ? 'border-red-400 ring-2 ring-red-500/15'
                   : 'border-ink-300 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/15',
@@ -261,7 +261,7 @@ export function OrderChat({ orderId, canPost }: { orderId: number; canPost: bool
                   'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors',
                   willBlock
                     ? 'cursor-not-allowed bg-red-100 text-red-400'
-                    : 'bg-brand-600 text-white hover:bg-brand-700 disabled:bg-ink-200 disabled:text-ink-400',
+                    : 'bg-solid-brand text-white hover:bg-solid-brand-hover disabled:bg-ink-200 disabled:text-ink-400',
                 )}
                 aria-label={willBlock ? 'Message blocked' : 'Send message'}
               >
@@ -337,7 +337,7 @@ function ScanWarning({ scan }: { scan: LeakScan }) {
             through.
           </p>
           {scan.masked_text && severe && (
-            <div className="mt-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-ink-600">
+            <div className="mt-2 rounded-lg bg-surface/70 px-3 py-2 text-xs text-ink-600">
               <span className="font-medium text-ink-500">How it would look masked: </span>
               {scan.masked_text}
             </div>

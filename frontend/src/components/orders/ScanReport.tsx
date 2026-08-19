@@ -112,7 +112,7 @@ function Score({
           {numeric.toFixed(1)}%
         </p>
       </div>
-      <div className="relative mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/70">
+      <div className="relative mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface/70">
         <div
           className={cn('h-full rounded-full', over ? 'bg-red-500' : 'bg-emerald-500')}
           style={{ width: `${Math.min(100, Math.max(numeric, 2))}%` }}

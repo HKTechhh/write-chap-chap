@@ -6,19 +6,25 @@ import { cn } from '@/lib/utils'
 type Variant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger' | 'success' | 'outline'
 type Size = 'sm' | 'md' | 'lg'
 
+/**
+ * Filled variants use the `solid-*` palette rather than the themed ramps.
+ * `bg-brand-600` flips to a light lavender in dark mode — correct for text,
+ * ruinous for a button wearing `text-white`. `solid-*` never moves.
+ */
 const VARIANTS: Record<Variant, string> = {
   primary:
-    'bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:bg-brand-800 disabled:bg-brand-300',
+    'bg-solid-brand text-white shadow-sm hover:bg-solid-brand-hover active:bg-solid-brand-active disabled:bg-solid-brand-disabled',
   accent:
-    'bg-gold-500 text-white shadow-sm hover:bg-gold-600 active:bg-gold-700 disabled:bg-gold-300',
+    'bg-solid-gold text-white shadow-sm hover:bg-solid-gold-hover active:bg-solid-gold-active disabled:bg-solid-gold-disabled',
   secondary:
-    'bg-white text-ink-800 ring-1 ring-inset ring-ink-300 shadow-sm hover:bg-ink-50 active:bg-ink-100',
+    'bg-surface text-ink-800 ring-1 ring-inset ring-ink-300 shadow-sm hover:bg-ink-100 active:bg-ink-200',
   outline:
     'bg-transparent text-brand-700 ring-1 ring-inset ring-brand-300 hover:bg-brand-50 active:bg-brand-100',
   ghost: 'bg-transparent text-ink-600 hover:bg-ink-100 hover:text-ink-900 active:bg-ink-200',
-  danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700 active:bg-red-800 disabled:bg-red-300',
+  danger:
+    'bg-solid-red text-white shadow-sm hover:bg-solid-red-hover active:bg-solid-red-active disabled:bg-solid-red-disabled',
   success:
-    'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-emerald-300',
+    'bg-solid-emerald text-white shadow-sm hover:bg-solid-emerald-hover active:bg-solid-emerald-active disabled:bg-solid-emerald-disabled',
 }
 
 const SIZES: Record<Size, string> = {

@@ -264,7 +264,7 @@ export default function PostOrder() {
                 Reading your document…
               </div>
             ) : quote ? (
-              <div className="mt-4 grid grid-cols-3 gap-4 rounded-xl bg-white p-4 ring-1 ring-gold-200">
+              <div className="mt-4 grid grid-cols-3 gap-4 rounded-xl bg-surface p-4 ring-1 ring-gold-200">
                 <QuoteStat label="Words" value={quote.word_count.toLocaleString()} />
                 <QuoteStat label="Pages" value={String(quote.pages)} />
                 <QuoteStat label="Price" value={formatMoney(quote.price)} highlight />
@@ -403,7 +403,7 @@ function TypeCard({
           ? tone === 'brand'
             ? 'border-brand-500 bg-brand-50'
             : 'border-gold-500 bg-gold-50'
-          : 'border-ink-200 bg-white hover:border-ink-300 hover:bg-ink-50',
+          : 'border-ink-200 bg-surface hover:border-ink-300 hover:bg-ink-50',
       )}
     >
       <span
@@ -411,7 +411,7 @@ function TypeCard({
           'inline-flex h-10 w-10 items-center justify-center rounded-xl',
           active
             ? tone === 'brand'
-              ? 'bg-brand-600 text-white'
+              ? 'bg-solid-brand text-white'
               : 'bg-gold-500 text-white'
             : 'bg-ink-100 text-ink-500',
         )}

@@ -5,6 +5,7 @@ import { Menu, X } from 'lucide-react'
 import { Logo } from './Logo'
 import { WhatsAppButton } from './WhatsAppButton'
 import { Button } from '@/components/ui/Button'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useAuth, homeFor } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 
@@ -19,8 +20,8 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="sticky top-0 z-40 border-b border-ink-200/70 bg-white/85 backdrop-blur-md">
+    <div className="min-h-screen bg-surface">
+      <header className="sticky top-0 z-40 border-b border-ink-200/70 bg-surface/85 backdrop-blur-md">
         <div className="container-page flex h-[68px] items-center justify-between gap-4">
           <Link to="/" aria-label="Write Chap Chap home">
             <Logo />
@@ -46,6 +47,7 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="hidden items-center gap-2.5 md:flex">
+            <ThemeToggle />
             {user ? (
               <Link to={homeFor(user.role)}>
                 <Button size="sm">Go to dashboard</Button>
@@ -74,7 +76,7 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
         </div>
 
         {open && (
-          <div className="border-t border-ink-200 bg-white px-4 py-4 md:hidden">
+          <div className="border-t border-ink-200 bg-surface px-4 py-4 md:hidden">
             <div className="flex flex-col gap-1">
               {LINKS.map((link) => (
                 <Link
@@ -111,7 +113,7 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
 
       <main>{children}</main>
 
-      <footer className="border-t border-ink-200 bg-ink-900 text-ink-300">
+      <footer className="border-t border-ink-200 theme-fixed bg-ink-900 text-ink-300">
         <div className="container-page py-14">
           <div className="grid gap-10 md:grid-cols-4">
             <div className="md:col-span-1">

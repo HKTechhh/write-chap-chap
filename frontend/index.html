@@ -16,6 +16,26 @@
       rel="stylesheet"
     />
     <title>Write Chap Chap — Freelance writing, done properly</title>
+    <script>
+      // Runs before first paint so a dark-mode user never sees a white flash
+      // while the JS bundle loads. React re-applies the same class on mount.
+      // Key must match THEME_STORAGE_KEY in src/context/ThemeContext.tsx.
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('wcc.theme')
+          var dark =
+            stored === 'dark' ||
+            ((stored === 'system' || !stored) &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) {
+            document.documentElement.classList.add('dark')
+            document.documentElement.style.colorScheme = 'dark'
+          }
+        } catch (e) {
+          /* Storage blocked — light mode is a safe default. */
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

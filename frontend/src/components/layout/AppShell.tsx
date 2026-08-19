@@ -29,6 +29,7 @@ import { NotificationBell } from './NotificationBell'
 import { WhatsAppButton } from './WhatsAppButton'
 import { Avatar } from '@/components/ui/Misc'
 import { Button } from '@/components/ui/Button'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import type { Role } from '@/api/types'
 
 interface NavItem {
@@ -193,7 +194,7 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-ink-50">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-ink-200 bg-white lg:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-ink-200 bg-surface lg:block">
         {sidebar}
       </aside>
 
@@ -201,17 +202,17 @@ export function AppShell() {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-ink-950/50 backdrop-blur-sm animate-fade-in"
+            className="absolute inset-0 bg-night-950/60 backdrop-blur-sm animate-fade-in"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative h-full w-72 max-w-[85vw] bg-white shadow-2xl animate-fade-in">
+          <aside className="relative h-full w-72 max-w-[85vw] bg-surface shadow-2xl animate-fade-in">
             {sidebar}
           </aside>
         </div>
       )}
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 border-b border-ink-200 bg-white/85 backdrop-blur-md">
+        <header className="sticky top-0 z-20 border-b border-ink-200 bg-surface/85 backdrop-blur-md">
           <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
             <button
               onClick={() => setMobileOpen(true)}
@@ -234,6 +235,8 @@ export function AppShell() {
               </span>
             )}
 
+            <ThemeToggle />
+
             <NotificationBell />
 
             <div className="relative">
@@ -247,7 +250,7 @@ export function AppShell() {
               {menuOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 z-20 mt-2 w-60 overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-card-hover animate-scale-in">
+                  <div className="absolute right-0 z-20 mt-2 w-60 overflow-hidden rounded-2xl border border-ink-200 bg-surface-raised shadow-card-hover animate-scale-in">
                     <div className="border-b border-ink-200 px-4 py-3">
                       <p className="truncate text-sm font-semibold text-ink-900">
                         {user.display_name}

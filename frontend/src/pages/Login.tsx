@@ -114,7 +114,7 @@ export function AuthLayout({
   return (
     <div className="flex min-h-screen">
       {/* Brand panel */}
-      <div className="relative hidden w-[44%] overflow-hidden bg-ink-950 lg:block">
+      <div className="relative hidden w-[44%] overflow-hidden theme-fixed bg-ink-950 lg:block">
         <div className="absolute inset-0 bg-mesh-brand" aria-hidden />
         <div className="absolute inset-0 bg-grid-faint [background-size:48px_48px]" aria-hidden />
         <div className="relative flex h-full flex-col justify-between p-12">

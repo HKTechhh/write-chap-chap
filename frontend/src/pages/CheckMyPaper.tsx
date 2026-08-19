@@ -126,7 +126,7 @@ export default function CheckMyPaper() {
 
   return (
     <MarketingLayout>
-      <section className="relative overflow-hidden bg-ink-950 py-16">
+      <section className="relative overflow-hidden theme-fixed bg-ink-950 py-16">
         <div className="absolute inset-0 bg-mesh-brand" aria-hidden />
         <div className="container-page relative">
           <div className="mx-auto max-w-2xl text-center">
@@ -325,7 +325,7 @@ export default function CheckMyPaper() {
                   />
 
                   {/* Total */}
-                  <div className="mt-7 flex items-center justify-between rounded-2xl bg-ink-900 px-5 py-4 text-white">
+                  <div className="mt-7 flex items-center justify-between rounded-2xl theme-fixed bg-ink-900 px-5 py-4 text-white">
                     <div>
                       <p className="text-xs text-ink-400">
                         {selected.length} report{selected.length === 1 ? '' : 's'} × KES{' '}
@@ -395,7 +395,7 @@ export default function CheckMyPaper() {
                         {tracked.reports.map((report) => (
                           <div
                             key={report.id}
-                            className="flex items-center justify-between gap-3 rounded-lg bg-white p-3 ring-1 ring-ink-200"
+                            className="flex items-center justify-between gap-3 rounded-lg bg-surface p-3 ring-1 ring-ink-200"
                           >
                             <div className="min-w-0">
                               <p className="truncate text-sm font-medium text-ink-800">

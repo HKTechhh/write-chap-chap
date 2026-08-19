@@ -233,7 +233,7 @@ function RoleCard({
           ? tone === 'brand'
             ? 'border-brand-500 bg-brand-50 shadow-sm'
             : 'border-gold-500 bg-gold-50 shadow-sm'
-          : 'border-ink-200 bg-white hover:border-ink-300 hover:bg-ink-50',
+          : 'border-ink-200 bg-surface hover:border-ink-300 hover:bg-ink-50',
       )}
     >
       <span
@@ -241,7 +241,7 @@ function RoleCard({
           'inline-flex h-10 w-10 items-center justify-center rounded-xl',
           active
             ? tone === 'brand'
-              ? 'bg-brand-600 text-white'
+              ? 'bg-solid-brand text-white'
               : 'bg-gold-500 text-white'
             : 'bg-ink-100 text-ink-500',
         )}

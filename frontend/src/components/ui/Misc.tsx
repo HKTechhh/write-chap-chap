@@ -19,7 +19,7 @@ export function PageLoader({ label = 'Loading…' }: { label?: string }) {
 export function Skeleton({ className }: { className?: string }) {
   return (
     <div className={cn('relative overflow-hidden rounded-lg bg-ink-200/70', className)}>
-      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-surface/60 to-transparent" />
     </div>
   )
 }
@@ -49,7 +49,7 @@ export function Avatar({ name, src, size = 'md', className, ring }: AvatarProps)
       className={cn(
         'shrink-0 rounded-full object-cover',
         AVATAR_SIZES[size],
-        ring && 'ring-2 ring-white',
+        ring && 'ring-2 ring-surface',
         className,
       )}
     />
@@ -60,7 +60,7 @@ export function Avatar({ name, src, size = 'md', className, ring }: AvatarProps)
         'flex shrink-0 items-center justify-center rounded-full font-bold text-white',
         avatarColor(name || '?'),
         AVATAR_SIZES[size],
-        ring && 'ring-2 ring-white',
+        ring && 'ring-2 ring-surface',
         className,
       )}
     >
@@ -195,7 +195,7 @@ export function Tabs({ tabs, value, onChange, className }: TabsProps) {
           className={cn(
             'shrink-0 rounded-lg px-3.5 py-2 text-sm font-medium transition-all',
             value === tab.value
-              ? 'bg-white text-ink-900 shadow-sm'
+              ? 'bg-surface text-ink-900 shadow-sm'
               : 'text-ink-500 hover:text-ink-800',
           )}
         >

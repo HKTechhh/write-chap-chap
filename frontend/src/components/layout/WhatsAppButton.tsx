@@ -15,7 +15,7 @@ export function WhatsAppButton() {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group fixed bottom-5 right-5 z-40 flex items-center gap-2.5 rounded-full bg-brand-600 py-3 pl-3.5 pr-4 text-sm font-semibold text-white shadow-glow transition-all hover:bg-brand-700 hover:shadow-card-hover sm:bottom-6 sm:right-6"
+      className="group fixed bottom-5 right-5 z-40 flex items-center gap-2.5 rounded-full bg-solid-brand py-3 pl-3.5 pr-4 text-sm font-semibold text-white shadow-glow transition-all hover:bg-solid-brand-hover hover:shadow-card-hover sm:bottom-6 sm:right-6"
       aria-label="Chat with support on WhatsApp"
     >
       <span className="relative flex h-5 w-5 items-center justify-center">

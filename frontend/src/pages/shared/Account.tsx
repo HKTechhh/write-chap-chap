@@ -1,15 +1,18 @@
 import type * as React from 'react'
 import { useEffect, useState } from 'react'
-import { CheckCircle2, KeyRound, ShieldCheck, Upload, User as UserIcon } from 'lucide-react'
+import { CheckCircle2, KeyRound, Palette, ShieldCheck, Upload, User as UserIcon } from 'lucide-react'
 import { auth as authApi, clientProfile, writers as writersApi } from '@/api/endpoints'
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
 import { useToast } from '@/context/ToastContext'
 import { SUBJECTS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Input, Textarea } from '@/components/ui/Field'
 import { Alert, Avatar, Tabs } from '@/components/ui/Misc'
+import { ThemePicker } from '@/components/ui/ThemeToggle'
 import { PageIntro } from '@/pages/client/ClientDashboard'
 
 export default function Account() {
@@ -20,6 +23,7 @@ export default function Account() {
     { value: 'profile', label: 'Profile' },
     ...(isWriter ? [{ value: 'writer', label: 'Writer details' }] : []),
     ...(isWriter ? [{ value: 'kyc', label: 'Identity (KYC)' }] : []),
+    { value: 'appearance', label: 'Appearance' },
     { value: 'security', label: 'Security' },
   ]
 
@@ -45,8 +49,48 @@ export default function Account() {
       {tab === 'profile' && <ProfileTab onSaved={refresh} />}
       {tab === 'writer' && <WriterTab />}
       {tab === 'kyc' && <KycTab onSaved={refresh} />}
+      {tab === 'appearance' && <AppearanceTab />}
       {tab === 'security' && <SecurityTab />}
     </div>
+  )
+}
+
+function AppearanceTab() {
+  const { preference, theme } = useTheme()
+
+  return (
+    <Card>
+      <CardHeader
+        title="Appearance"
+        description="Applies to this browser only — it is not tied to your account."
+        icon={<Palette className="h-4 w-4" />}
+      />
+      <div className="space-y-5 p-5">
+        <div>
+          <p className="label">Colour theme</p>
+          <ThemePicker />
+          <p className="hint">
+            {preference === 'system'
+              ? `Following your device, which is currently set to ${theme}.`
+              : `Always ${preference}, whatever your device is set to.`}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-ink-200 bg-ink-50 p-4">
+          <p className="text-sm font-medium text-ink-800">Preview</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Badge tone="brand">In review</Badge>
+            <Badge tone="success">Completed</Badge>
+            <Badge tone="warning">In revision</Badge>
+            <Badge tone="danger">Disputed</Badge>
+            <Button size="sm">Primary</Button>
+            <Button size="sm" variant="secondary">
+              Secondary
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Card>
   )
 }
 
@@ -218,7 +262,7 @@ function WriterTab() {
                   'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                   form.subjects.includes(subject.value)
                     ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-ink-300 bg-white text-ink-600 hover:border-brand-300',
+                    : 'border-ink-300 bg-surface text-ink-600 hover:border-brand-300',
                 )}
               >
                 {subject.label}

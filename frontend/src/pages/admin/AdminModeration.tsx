@@ -94,7 +94,7 @@ export default function AdminModeration() {
                 className="inline-flex items-center gap-2 rounded-full bg-ink-100 px-3 py-1.5 text-xs font-medium text-ink-700"
               >
                 {LEAK_KIND_LABEL[row.kind as keyof typeof LEAK_KIND_LABEL] ?? row.kind}
-                <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-ink-900">
+                <span className="rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-bold text-ink-900">
                   {row.count}
                 </span>
               </span>
@@ -199,7 +199,7 @@ function FlagCard({ flag, onReview }: { flag: ContactLeakFlag; onReview: () => v
           {flag.detected_kinds.map((kind) => (
             <span
               key={kind}
-              className="rounded-full bg-ink-900 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
+              className="rounded-full theme-fixed bg-ink-900 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
             >
               {LEAK_KIND_LABEL[kind] ?? kind}
             </span>

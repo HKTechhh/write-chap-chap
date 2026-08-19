@@ -752,7 +752,7 @@ function TimelinePanel({ order }: { order: Order }) {
             <li key={event.label} className="relative">
               <span
                 className={cn(
-                  'absolute -left-[25px] top-1 h-3 w-3 rounded-full ring-4 ring-white',
+                  'absolute -left-[25px] top-1 h-3 w-3 rounded-full ring-4 ring-surface',
                   event.done ? 'bg-brand-500' : 'bg-ink-300',
                 )}
               />

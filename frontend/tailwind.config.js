@@ -1,53 +1,132 @@
-/** @type {import('tailwindcss').Config} */
+/**
+ * Theming note — why so many colours are CSS variables.
+ *
+ * Dark mode here is a *token* flip, not a pile of `dark:` utilities. Every
+ * step below written as `rgb(var(--x) / <alpha-value>)` is redefined under
+ * `.dark` in index.css, so `text-ink-900` or `bg-brand-50` keeps meaning the
+ * same thing ("heading colour", "subtle brand tint") in both themes and the
+ * ~1,100 existing colour utilities did not have to be touched.
+ *
+ * Only the steps whose ROLE is unambiguous are flipped:
+ *   50/100  subtle tint backgrounds     -> dark tint
+ *   200     hairline rings and borders  -> dark ring
+ *   600-900 text on those tints         -> light text
+ * Steps 300/400/500 stay literal, because they read acceptably on either
+ * background and are used for solid fills (`bg-gold-500`, `bg-emerald-500`).
+ *
+ * Two escape hatches exist for the cases a single token cannot express:
+ *   `night-*`  neutrals that must stay dark in BOTH themes (marketing heroes,
+ *              modal scrims) — see the ink-950 usages in Landing/Pricing.
+ *   `surface`  panel background, since `white` must stay literally white for
+ *              `text-white` on solid buttons.
+ * @type {import('tailwindcss').Config}
+ */
+
+/** `rgb(var(--x) / <alpha-value>)` so `/50` opacity modifiers keep working. */
+const v = (name) => `rgb(var(--${name}) / <alpha-value>)`
+
+/** A palette where only the role-unambiguous steps become themeable. */
+const themed = (prefix, fixed) => ({
+  ...fixed,
+  50: v(`${prefix}-50`),
+  100: v(`${prefix}-100`),
+  200: v(`${prefix}-200`),
+  600: v(`${prefix}-600`),
+  700: v(`${prefix}-700`),
+  800: v(`${prefix}-800`),
+  900: v(`${prefix}-900`),
+})
+
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
+        // Panel background. Distinct from `white`, which must stay literal so
+        // `text-white` on a solid button survives the theme flip.
+        surface: v('surface'),
+        // One step brighter than `surface` — dropdowns, modals, popovers.
+        'surface-raised': v('surface-raised'),
+        // The real page background. Unlike `ink-50` this is never pinned by
+        // `.theme-fixed`, so it can be used to blend into the page from
+        // inside an always-dark section.
+        canvas: v('page-canvas'),
+
         // Shared brand: deep indigo. Trustworthy without the generic
         // blue-admin-panel look.
-        brand: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
+        brand: themed('brand', {
           300: '#a5b4fc',
           400: '#818cf8',
           500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
           950: '#1e1b4b',
-        },
+        }),
         // Writer accent: warm gold. Energy and opportunity — earning, not spending.
-        gold: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
+        gold: themed('gold', {
           300: '#fcd34d',
           400: '#fbbf24',
           500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f',
-        },
+        }),
         // Client accent: teal. Calm and considered.
-        teal: {
-          50: '#f0fdfa',
-          100: '#ccfbf1',
-          200: '#99f6e4',
+        teal: themed('teal', {
           300: '#5eead4',
           400: '#2dd4bf',
           500: '#14b8a6',
-          600: '#0d9488',
-          700: '#0f766e',
-          800: '#115e59',
-          900: '#134e4a',
-        },
+        }),
+        // Status palettes. Tailwind's `extend` deep-merges, so the steps left
+        // out here keep their stock values.
+        emerald: themed('emerald', {}),
+        amber: themed('amber', {}),
+        red: themed('red', {}),
+        violet: themed('violet', {}),
+        sky: themed('sky', {}),
+        // Only the 50 step is used (as a gradient stop on the writer tier and
+        // pricing cards). Left un-themed it stayed near-white and burned a
+        // bright corner into those cards in dark mode.
+        orange: { 50: v('orange-50') },
+
         ink: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
+          50: v('ink-50'),
+          100: v('ink-100'),
+          200: v('ink-200'),
+          300: v('ink-300'),
+          400: v('ink-400'),
+          500: v('ink-500'),
+          600: v('ink-600'),
+          700: v('ink-700'),
+          800: v('ink-800'),
+          900: v('ink-900'),
+          950: v('ink-950'),
+        },
+
+        // Filled buttons and pills that carry `text-white`. These keep their
+        // exact light-mode values in both themes: the accents already clear
+        // 4.5:1 against white (indigo-600 is 6.3:1), whereas lightening them
+        // for dark mode — the usual instinct — drops indigo-500 to 4.47:1 and
+        // indigo-400 to about 3:1. A button that fails contrast on hover is
+        // worse than one that looks identical in both themes.
+        solid: {
+          brand: '#4f46e5',
+          'brand-hover': '#4338ca',
+          'brand-active': '#3730a3',
+          'brand-disabled': '#a5b4fc',
+          gold: '#f59e0b',
+          'gold-hover': '#d97706',
+          'gold-active': '#b45309',
+          'gold-disabled': '#fcd34d',
+          red: '#dc2626',
+          'red-hover': '#b91c1c',
+          'red-active': '#991b1b',
+          'red-disabled': '#fca5a5',
+          emerald: '#059669',
+          'emerald-hover': '#047857',
+          'emerald-active': '#065f46',
+          'emerald-disabled': '#6ee7b7',
+        },
+
+        // Deliberately NOT themed: surfaces that are dark in both themes, so
+        // the white text sitting on them never has to move.
+        night: {
           200: '#e2e8f0',
           300: '#cbd5e1',
           400: '#94a3b8',
@@ -67,8 +146,11 @@ export default {
         '4xl': '2rem',
       },
       boxShadow: {
-        card: '0 1px 2px 0 rgb(15 23 42 / 0.04), 0 4px 16px -2px rgb(15 23 42 / 0.06)',
-        'card-hover': '0 2px 4px 0 rgb(15 23 42 / 0.06), 0 12px 32px -4px rgb(15 23 42 / 0.12)',
+        // Shadow opacity is themed: a 4%-black shadow is invisible on a dark
+        // canvas, so `--shadow-strength` scales up under `.dark`.
+        card: '0 1px 2px 0 rgb(var(--shadow-rgb) / calc(0.04 * var(--shadow-strength))), 0 4px 16px -2px rgb(var(--shadow-rgb) / calc(0.06 * var(--shadow-strength)))',
+        'card-hover':
+          '0 2px 4px 0 rgb(var(--shadow-rgb) / calc(0.06 * var(--shadow-strength))), 0 12px 32px -4px rgb(var(--shadow-rgb) / calc(0.12 * var(--shadow-strength)))',
         glow: '0 0 0 1px rgb(99 102 241 / 0.12), 0 8px 32px -8px rgb(99 102 241 / 0.4)',
       },
       backgroundImage: {

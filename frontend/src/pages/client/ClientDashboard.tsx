@@ -163,7 +163,7 @@ export default function ClientDashboard() {
 
         {/* Side rail */}
         <div className="space-y-6">
-          <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-600 to-teal-600 p-6 text-white">
+          <div className="theme-fixed overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-600 to-teal-600 p-6 text-white">
             <h3 className="text-lg font-bold">Ready to get something written?</h3>
             <p className="mt-2 text-sm leading-relaxed text-white/80">
               Post the brief and compare real bids. Your money stays in escrow until you approve

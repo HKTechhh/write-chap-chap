@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 export default function Pricing() {
   return (
     <MarketingLayout>
-      <section className="relative overflow-hidden bg-ink-950 py-20">
+      <section className="relative overflow-hidden theme-fixed bg-ink-950 py-20">
         <div className="absolute inset-0 bg-mesh-brand" aria-hidden />
         <div className="container-page relative text-center">
           <p className="text-sm font-bold uppercase tracking-[0.14em] text-teal-300">Pricing</p>
@@ -23,7 +23,7 @@ export default function Pricing() {
       </section>
 
       {/* Marketplace fees */}
-      <section className="bg-white py-20">
+      <section className="bg-surface py-20">
         <div className="container-page">
           <div className="grid gap-6 lg:grid-cols-2">
             <PlanCard
@@ -137,7 +137,7 @@ export default function Pricing() {
       </section>
 
       {/* Other charges */}
-      <section className="bg-white py-20">
+      <section className="bg-surface py-20">
         <div className="container-page max-w-3xl">
           <h2 className="text-2xl font-bold tracking-tight text-ink-900">Everything else</h2>
           <p className="mt-2 text-sm text-ink-600">
@@ -202,8 +202,8 @@ function PlanCard({
       className={cn(
         'relative flex flex-col rounded-3xl border p-8',
         featured
-          ? 'border-gold-300 bg-gradient-to-br from-gold-50 via-white to-orange-50 shadow-card-hover'
-          : 'border-ink-200 bg-white shadow-card',
+          ? 'border-gold-300 bg-gradient-to-br from-gold-50 via-surface to-orange-50 shadow-card-hover'
+          : 'border-ink-200 bg-surface shadow-card',
       )}
     >
       {badge && (
@@ -256,7 +256,7 @@ function ServiceCard({
   cta: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col rounded-3xl border border-ink-200 bg-white p-8 shadow-card">
+    <div className="flex flex-col rounded-3xl border border-ink-200 bg-surface p-8 shadow-card">
       <span
         className={cn(
           'inline-flex h-12 w-12 items-center justify-center rounded-2xl',

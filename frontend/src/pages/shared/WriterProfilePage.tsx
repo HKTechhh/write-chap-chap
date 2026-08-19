@@ -48,7 +48,7 @@ export default function WriterProfilePage() {
 
       {/* Header */}
       <div className="card overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-brand-600 via-brand-500 to-teal-500" />
+        <div className="theme-fixed h-24 bg-gradient-to-r from-brand-600 via-brand-500 to-teal-500" />
         <div className="px-6 pb-6">
           <div className="-mt-10 flex flex-wrap items-end justify-between gap-4">
             <div className="flex items-end gap-4">

@@ -142,7 +142,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
       <select
         ref={ref}
         id={inputId}
-        className={cn('field appearance-none bg-white pr-9', error && 'field-error', className)}
+        className={cn('field appearance-none bg-surface pr-9', error && 'field-error', className)}
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e\")",
@@ -174,7 +174,7 @@ export function Checkbox({ label, description, className, id, ...props }: Checkb
     <label
       htmlFor={inputId}
       className={cn(
-        'flex cursor-pointer items-start gap-3 rounded-xl border border-ink-200 bg-white p-3.5 transition-colors',
+        'flex cursor-pointer items-start gap-3 rounded-xl border border-ink-200 bg-surface p-3.5 transition-colors',
         'hover:border-brand-300 hover:bg-brand-50/40',
         props.checked && 'border-brand-400 bg-brand-50/60 ring-1 ring-brand-200',
         className,

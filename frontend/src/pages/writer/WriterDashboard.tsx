@@ -227,7 +227,7 @@ function TierCard({ tier, stats }: { tier: string; stats: WriterStats | null }) 
   const progress = tier === 'expert' ? 100 : Math.min(100, (completed / target) * 100)
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-gold-200 bg-gradient-to-br from-gold-50 via-white to-orange-50 p-6">
+    <div className="overflow-hidden rounded-2xl border border-gold-200 bg-gradient-to-br from-gold-50 via-surface to-orange-50 p-6">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-ink-700">Your tier</h3>
         <TierBadge tier={(tier as any) ?? 'new'} />

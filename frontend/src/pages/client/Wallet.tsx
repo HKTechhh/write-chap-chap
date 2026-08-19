@@ -111,7 +111,7 @@ export default function Wallet() {
         </div>
 
         <div className="space-y-6">
-          <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-600 to-teal-600 p-6 text-white">
+          <div className="theme-fixed overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-600 to-teal-600 p-6 text-white">
             <p className="text-sm text-white/75">Available balance</p>
             <p className="mt-2 text-4xl font-extrabold tracking-tight">
               {walletState.loading
@@ -221,7 +221,7 @@ export function TopUpModal({
                   'rounded-xl border px-3.5 py-2 text-sm font-semibold transition-colors',
                   Number(amount) === value
                     ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-ink-300 bg-white text-ink-700 hover:border-brand-300 hover:bg-brand-50/40',
+                    : 'border-ink-300 bg-surface text-ink-700 hover:border-brand-300 hover:bg-brand-50/40',
                 )}
               >
                 {value.toLocaleString()}
