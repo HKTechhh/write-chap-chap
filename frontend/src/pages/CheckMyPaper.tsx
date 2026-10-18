@@ -527,6 +527,9 @@ function PaymentReceipt({
           <Alert tone="success" className="mt-6">
             We'll email <span className="font-semibold">{result.requester_email}</span> when both
             reports are ready. You can also track it here with your reference.
+            {result.payment_message && (
+              <span className="mt-2 block font-semibold">{result.payment_message}</span>
+            )}
           </Alert>
         )}
 

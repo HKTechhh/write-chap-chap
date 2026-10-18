@@ -103,9 +103,11 @@ def settle_check_payment(intent):
 
 def payment_state(check):
     """('paid' | 'pending' | 'failed' | 'none', message) for the public tracking view."""
-    if check.payment_status != CheckRequest.PaymentStatus.UNPAID:
-        return "paid", ""
     intent = check.payment_intents.first()
+    if check.payment_status != CheckRequest.PaymentStatus.UNPAID:
+        if intent is not None and intent.raw_response.get("simulated"):
+            return "paid", "Test mode: no real M-Pesa prompt was sent and no money moved."
+        return "paid", ""
     if intent is None:
         return "none", ""
     if intent.status == PaymentIntent.Status.PENDING:
