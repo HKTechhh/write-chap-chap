@@ -1,4 +1,4 @@
-# Write Chap Chap — Complete Build Plan
+# Penspan — Complete Build Plan
 ### A freelance writing marketplace with escrow, quality enforcement, and AI/plagiarism screening
 
 ---
@@ -21,13 +21,13 @@
 | Frontend | React + TypeScript + Tailwind | Matches your existing stack and skillset |
 | Database | PostgreSQL | Relational integrity matters a lot here (money, orders, disputes) |
 | Async tasks | Celery + Redis | For scheduled jobs: deadline checks, auto-fines, GPTZero scans, payout batching |
-| File storage | S3-compatible (e.g. Cloudflare R2 or AWS S3) | Writer-submitted documents, revisions |
+| File storage | S3-compatible (DigitalOcean Spaces, Cloudflare R2 or AWS S3) | Writer-submitted documents, revisions |
 | Auth | Django + JWT (SimpleJWT) | Standard, works cleanly with React |
 | Payments | M-Pesa Daraja API (Kenya) + Flutterwave (cards/global) | Matches your earlier stack decision |
 | Plagiarism/AI detection | GPTZero API | Your existing choice |
 | Realtime chat | Django Channels (WebSockets) or a simple polling fallback for MVP | Order messaging, support chat |
 | Notifications | Email (SendGrid/Postmark) + WhatsApp click-to-chat + in-app | |
-| Hosting | Backend: Render/Railway/DigitalOcean; Frontend: Vercel/Netlify | Cheap to start, scales fine |
+| Hosting | One DigitalOcean droplet in Frankfurt (Docker Compose + Caddy for automatic HTTPS) | One server to run and pay for; resize as traffic grows. See Section 11 |
 
 ---
 
@@ -82,11 +82,11 @@
 - order (FK, nullable for support chat), sender (FK), content, attachment (nullable), created_at
 
 **CheckRequest**
-- requested_by (FK), document (file), report_types requested (`ai_content`/`plagiarism`/`turnitin`/`similarity_links`), status (`pending`/`processed`/`delivered`), total_price, created_at
+- requested_by (FK), document (file), report_types (always the bundle: `ai_content` + `similarity_links`), status (`pending`/`processed`/`delivered`), total_price, created_at
 - Admin-only tool — no writer-facing access point exists to trigger or view this
 
 **CheckReport**
-- check_request (FK), report_type, price (KES 150 flat per report), file/report_url, processed_by (admin FK), delivered_at
+- check_request (FK), report_type, price (the KES 120 bundle split across the two reports), file/report_url, processed_by (admin FK), delivered_at
 
 ---
 
@@ -128,9 +128,9 @@ Deliberately kept out of writers' hands — letting writers self-check drafts ag
 
 1. Anyone (client or even a non-marketplace visitor) uploads a document via a public "Check My Paper" request form
 2. Request lands only in your Admin dashboard — writers never see this tool
-3. You run the check(s) yourself (GPTZero, Turnitin, or a similarity/copy-link report) and upload the resulting report(s) to the request
+3. You run both checks yourself (an AI report and a plagiarism / similarity report) and upload both reports to the request. A check can only be delivered once both are uploaded
 4. Requester is notified and can view/download the delivered report(s)
-5. Pricing: **KES 150 flat per report**, regardless of order/document size — two report types on one document = KES 300 total
+5. Pricing: **KES 120 flat per document**, regardless of document size. Every check is the AI + similarity bundle; a single report cannot be ordered
 
 The Document Check service doesn't depend on the full marketplace/escrow system — it could realistically launch early as a standalone revenue stream and lead-gen tool, even before bidding/escrow is fully built. Humanization orders, by contrast, need the order/bid/escrow pipeline working first since they run through it.
 
@@ -219,7 +219,7 @@ Same underlying component library and page patterns for both (so it's one codeba
 
 - **Shared foundation:** one component library, one typography scale, one spacing system — this is what keeps both role experiences feeling like the same professional product rather than two disconnected apps
 - **Brand color:** deep teal or indigo as the primary shared color (professional, trustworthy — avoid generic blue-admin-panel look)
-- **Role-based accent, not a redesign:** client dashboard uses the primary teal/indigo as its accent (calm, trust-building — appropriate for someone spending money); writer dashboard uses a warm gold/amber accent (energy, opportunity — appropriate for someone earning, and ties nicely into the "chap chap" speed branding). Same cards, same nav pattern, same fonts — only the accent color and dashboard content change, which is enough to make each feel tailored without fragmenting the design system
+- **Role-based accent, not a redesign:** client dashboard uses the primary teal/indigo as its accent (calm, trust-building — appropriate for someone spending money); writer dashboard uses a warm gold/amber accent (energy, opportunity — appropriate for someone earning, and ties nicely into the Penspan brand's gold highlights). Same cards, same nav pattern, same fonts — only the accent color and dashboard content change, which is enough to make each feel tailored without fragmenting the design system
 - **Status colors** used only on badges/pills, not backgrounds: green = paid/completed, amber = in progress, red = disputed/flagged, purple = escrowed
 - **Typography:** one clean sans-serif (e.g. Inter or Manrope), generous line height, no more than 2 font weights per screen
 - **Layout:** generous white space, cards with soft shadows instead of dense tables where possible, one primary action per screen clearly emphasized
@@ -240,7 +240,7 @@ Same underlying component library and page patterns for both (so it's one codeba
 | **Featured/boosted bids** | Writers pay to appear higher in bid lists or "available writers" | Optional add-on revenue |
 | **Fines** | Late delivery / quality failures | Split: 50% refunded to client, 50% platform revenue |
 | **GPTZero scan fee** | Small per-submission charge, or absorbed into service fee | Confirm current GPTZero pricing before deciding which |
-| **Document Check service** | KES 150 flat per report (AI-content, plagiarism, Turnitin, similarity/links) | Admin-only — you run and deliver these personally, high margin (your time + one API call vs. flat fee) |
+| **Document Check service** | KES 120 flat per document (AI report + plagiarism / similarity report, always both) | Admin-only — you run and deliver these personally, high margin (your time + one API call vs. flat fee) |
 | **AI Humanization service** | KES 50 per page (250 words = 1 page, rounded up), fixed price — flows through normal bidding/escrow, standard platform fee still applies on release | Self-serve for everyone; scales with writer capacity instead of your own time |
 
 ---
@@ -270,6 +270,60 @@ Same underlying component library and page patterns for both (so it's one codeba
 
 **Phase 4 — Growth features**
 - Subscriptions, boosted visibility, real-time chat (Channels), analytics dashboard, referral system
+
+---
+
+## 11. Hosting & Deployment (DigitalOcean)
+
+**One droplet, Docker Compose, Ubuntu 24.04, Frankfurt (`fra1`).** Runbook: `deploy/README.md`.
+
+| Container | Role |
+|---|---|
+| `caddy` | Serves the React build, proxies `/api` and `/admin`, automatic HTTPS for penspan.com and www |
+| `api` | Django + gunicorn; runs migrations on start |
+| `worker` | Celery: GPTZero scans, M-Pesa payouts |
+| `beat` | Celery beat: hourly late fines and escrow auto-release, nightly tier recalculation |
+| `redis` | Celery broker (no eviction, so queued tasks are never lost) |
+| `db` | Postgres 16 |
+
+| Phase | Droplet | Approx. cost |
+|---|---|---|
+| Testing, little traffic | 2 GB / 1 vCPU (`s-1vcpu-2gb`) with 2 GB swap | $12/month |
+| Launch, real users | 4 GB / 2 vCPU (`s-2vcpu-4gb`) | $24/month |
+| Optional | Droplet backups (about 20%), Spaces for uploads ($5/month) | |
+
+- **Backups:** nightly `pg_dump` to `/var/backups/penspan` (14 days kept) plus optional droplet backups.
+- **Uploads:** droplet disk while testing; DigitalOcean Spaces with private signed URLs before real KYC documents.
+- **Security:** cloud firewall and `ufw` allow only 22, 80 and 443; secrets live only in `.env` on the server.
+- **Scaling path:** resize to 4 GB (CPU and RAM only), then move Postgres to a Managed Database.
+
+---
+
+## 12. Build status
+
+| Item | Status |
+|---|---|
+| Auth, roles, KYC, writer tiers, strikes | Built |
+| Order lifecycle with escrow, auto-release after the review window | Built; scheduled release runs on Celery beat |
+| Bidding, including locked-price humanization bids | Built |
+| Late-delivery fines (5%/day, 25% cap, 50/50 split) | Built; hourly job runs on Celery beat |
+| GPTZero scan on every deliverable | Built; queued to the Celery worker |
+| Disputes and admin arbitration | Built |
+| Humanization orders (KES 50 per 250 words, auto word count, locked price) | Built |
+| Document Check (admin-only, KES 120 paid up front by M-Pesa STK prompt, AI report + plagiarism/similarity report, always both) | Built |
+| Verified reviews (completed orders only) | Built |
+| Separate client and writer dashboards, simplified navigation | Built |
+| WhatsApp support button | Built |
+| Contact-leak guard on chat | Built |
+| Wallet, top-ups, withdrawals | Built |
+| M-Pesa STK push and Flutterwave | Built; add live credentials |
+| M-Pesa B2C payouts | Built; needs Safaricom credentials and a Daraja sandbox test |
+| Writer subscriptions | Built (model and API) |
+| Penspan brand, logo, favicons, og-image, email base template | Built |
+| Docker, Caddy HTTPS, nightly backups, deploy scripts | Built; not yet run on a real droplet |
+| Boosted bids (paid placement) | Partial: the field exists, no purchase flow |
+| Real-time chat (Django Channels) | Not built: chat polls every 20 seconds |
+| Referral system, analytics dashboard | Not built (Phase 4) |
 
 ---
 

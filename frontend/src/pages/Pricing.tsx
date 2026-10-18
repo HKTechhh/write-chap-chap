@@ -92,15 +92,13 @@ export default function Pricing() {
               icon={<FileSearch className="h-6 w-6" />}
               tone="brand"
               title="Check My Paper"
-              price="KES 150"
-              unit="per report, any document size"
-              body="Upload a document and pick which reports you need. We run the checks and send the results back to you — no marketplace account required."
+              price="KES 120"
+              unit="per document, any size"
+              body="Upload a document and get both reports back: AI content and similarity. We run the checks and send the results to you — no marketplace account required."
               points={[
-                'AI content detection',
-                'Plagiarism scan',
-                'Turnitin report',
-                'Similarity / source links',
-                'Two report types on one document = KES 300',
+                'AI report',
+                'Plagiarism / similarity report',
+                'One document in, both reports back, one flat price',
               ]}
               cta={
                 <Link to="/check-my-paper">

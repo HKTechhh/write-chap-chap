@@ -1,0 +1,13 @@
+{
+  "name": "Penspan",
+  "short_name": "Penspan",
+  "description": "Hire vetted writers or earn as one. Escrow-protected, AI and plagiarism screened.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563EB",
+  "icons": [
+    { "src": "/brand/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/brand/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

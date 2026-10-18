@@ -1,0 +1,124 @@
+# Penspan production stack for a single DigitalOcean droplet.
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+#
+# Sized for a 2 GB droplet: 2 gunicorn workers, 1 Celery process, small Postgres
+# and Redis. For a 4 GB droplet raise GUNICORN_WORKERS and CELERY_CONCURRENCY in .env.
+
+x-backend: &backend
+  build:
+    context: ./backend
+  image: penspan-backend:latest
+  env_file: .env
+  restart: unless-stopped
+  environment: &backend-env
+    DEBUG: "False"
+    ALLOWED_HOSTS: ${DOMAIN},www.${DOMAIN}
+    FRONTEND_URL: https://${DOMAIN}
+    CORS_ALLOWED_ORIGINS: https://${DOMAIN},https://www.${DOMAIN}
+    DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    # The bundled Postgres is on a private Docker network and does not speak TLS.
+    DB_SSLMODE: disable
+    CELERY_BROKER_URL: redis://redis:6379/0
+    CELERY_RESULT_BACKEND: redis://redis:6379/1
+    # A real worker exists here, so tasks are queued, not run inline.
+    CELERY_TASK_ALWAYS_EAGER: "False"
+  volumes:
+    - media_data:/app/media
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    # Small-memory tuning for a 2 GB host shared with the app.
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=40", "-c", "work_mem=4MB"]
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # noeviction: Celery must never silently lose a queued task to memory pressure.
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      RUN_MIGRATIONS: "1"
+    healthcheck:
+      # Mimic what Caddy sends, otherwise ALLOWED_HOSTS / SSL redirect reject the probe.
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os,urllib.request as u; u.urlopen(u.Request('http://127.0.0.1:8000/api/check-requests/pricing/', headers={'Host': os.environ['DOMAIN'], 'X-Forwarded-Proto': 'https'}), timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  worker:
+    <<: *backend
+    command: ["sh", "-c", "exec celery -A config worker -l info --concurrency=${CELERY_CONCURRENCY:-1}"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  beat:
+    <<: *backend
+    # Schedule state lives in /tmp: it is interval-based, so losing it on restart is harmless.
+    command: ["celery", "-A", "config", "beat", "-l", "info", "--schedule", "/tmp/celerybeat-schedule"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  caddy:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.caddy
+      args:
+        VITE_WHATSAPP_NUMBER: ${WHATSAPP_SUPPORT_NUMBER:-254700000000}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - media_data:/srv/media:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pg_data:
+  redis_data:
+  media_data:
+  caddy_data:
+  caddy_config:

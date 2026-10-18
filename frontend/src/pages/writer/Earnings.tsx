@@ -201,7 +201,7 @@ export default function Earnings() {
                       tone={
                         item.status === 'paid'
                           ? 'success'
-                          : item.status === 'rejected'
+                          : item.status === 'rejected' || item.status === 'failed'
                             ? 'danger'
                             : 'warning'
                       }
@@ -284,7 +284,7 @@ export default function Earnings() {
         phone={user?.phone ?? ''}
         onClose={() => setWithdrawOpen(false)}
         onDone={() => {
-          toast.success('Withdrawal requested', 'An admin will process it shortly.')
+          toast.success('Withdrawal requested', 'It will be sent to your M-Pesa shortly.')
           setWithdrawOpen(false)
           reloadAll()
         }}

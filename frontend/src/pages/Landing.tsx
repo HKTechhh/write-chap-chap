@@ -56,7 +56,7 @@ function Hero() {
           <h1 className="mt-7 text-balance text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-6xl animate-fade-up">
             Great writing,{' '}
             <span className="bg-gradient-to-r from-gold-300 via-gold-400 to-teal-300 bg-clip-text text-transparent">
-              chap chap
+              on time
             </span>
             .
           </h1>
@@ -343,7 +343,7 @@ function Screening() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/check-my-paper">
                 <Button variant="accent" icon={<FileSearch className="h-4 w-4" />}>
-                  Check a document — KES 150
+                  Check a document — KES 120
                 </Button>
               </Link>
               <Link to="/pricing">

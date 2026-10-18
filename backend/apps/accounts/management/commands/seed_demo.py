@@ -99,7 +99,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Demo data ready."))
         self.stdout.write("")
         self.stdout.write("  Sign in with any of these (password for all: " + PASSWORD + ")")
-        self.stdout.write(f"    admin   : admin")
+        self.stdout.write("    admin   : admin")
         self.stdout.write(f"    client  : {CLIENTS[0][0]}")
         self.stdout.write(f"    writer  : {WRITERS[0][0]}")
         self.stdout.write("")
@@ -110,7 +110,7 @@ class Command(BaseCommand):
         admin, created = User.objects.get_or_create(
             username="admin",
             defaults={
-                "email": "admin@writechapchap.co.ke",
+                "email": "admin@penspan.com",
                 "role": Role.ADMIN,
                 "is_staff": True,
                 "is_superuser": True,
@@ -319,6 +319,7 @@ class Command(BaseCommand):
             document="check_requests/sample.txt",
             original_name="dissertation-chapter-3.docx",
             word_count=4200,
-            report_types=["ai_content", "plagiarism"],
+            report_types=["ai_content", "similarity_links"],
             notes="Need this before Friday's submission deadline please.",
+            payment_status="paid",
         )

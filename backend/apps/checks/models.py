@@ -8,10 +8,13 @@ from apps.common.models import TimeStampedModel
 
 
 class ReportType(models.TextChoices):
-    AI_CONTENT = "ai_content", "AI content detection"
-    PLAGIARISM = "plagiarism", "Plagiarism scan"
-    TURNITIN = "turnitin", "Turnitin report"
-    SIMILARITY_LINKS = "similarity_links", "Similarity / source links"
+    AI_CONTENT = "ai_content", "AI report"
+    SIMILARITY_LINKS = "similarity_links", "Plagiarism / similarity report"
+
+
+# A Document Check is always both reports together, for one flat price.
+# Nobody can order a single report.
+BUNDLE_REPORT_TYPES = [ReportType.AI_CONTENT.value, ReportType.SIMILARITY_LINKS.value]
 
 
 class CheckRequest(TimeStampedModel):
@@ -22,6 +25,7 @@ class CheckRequest(TimeStampedModel):
     """
 
     class Status(models.TextChoices):
+        AWAITING_PAYMENT = "awaiting_payment", "Awaiting payment"
         PENDING = "pending", "Pending"
         PROCESSING = "processing", "Processing"
         PROCESSED = "processed", "Processed"
@@ -53,7 +57,7 @@ class CheckRequest(TimeStampedModel):
     report_types = models.JSONField(default=list, help_text="List of ReportType values.")
     notes = models.TextField(blank=True)
 
-    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING, db_index=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING, db_index=True)
     payment_status = models.CharField(
         max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID
     )
@@ -70,15 +74,17 @@ class CheckRequest(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.reference:
-            self.reference = f"WCC-{uuid.uuid4().hex[:8].upper()}"
+            self.reference = f"PSP-{uuid.uuid4().hex[:8].upper()}"
+        if not self.report_types:
+            self.report_types = list(BUNDLE_REPORT_TYPES)
         if not self.total_price:
-            self.total_price = self.calculate_price(self.report_types)
+            self.total_price = self.calculate_price()
         super().save(*args, **kwargs)
 
     @staticmethod
-    def calculate_price(report_types):
-        """Flat KES 150 per report, regardless of document size."""
-        return Decimal(len(report_types or [])) * Decimal(str(settings.DOCUMENT_CHECK_PRICE))
+    def calculate_price(report_types=None):
+        """Flat KES 120 per document for the AI + similarity bundle, whatever its size."""
+        return Decimal(str(settings.DOCUMENT_CHECK_PRICE))
 
     @property
     def requester_display(self):
@@ -127,5 +133,6 @@ class CheckReport(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.price:
-            self.price = Decimal(str(settings.DOCUMENT_CHECK_PRICE))
+            # The bundle price is split evenly across the two reports.
+            self.price = Decimal(str(settings.DOCUMENT_CHECK_PRICE)) / len(BUNDLE_REPORT_TYPES)
         super().save(*args, **kwargs)

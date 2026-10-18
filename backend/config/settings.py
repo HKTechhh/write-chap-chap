@@ -1,4 +1,4 @@
-"""Django settings for the Write Chap Chap platform."""
+"""Django settings for the Penspan platform."""
 from datetime import timedelta
 from pathlib import Path
 
@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY", default="dev-only-insecure-key-change-in-production")
 DEBUG = config("DEBUG", default=True, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,penspan.com,www.penspan.com", cast=Csv())
 
 def _as_origin(value):
     """Managed hosts hand out bare `host:port`; CSRF/CORS need a scheme."""
@@ -20,23 +20,14 @@ def _as_origin(value):
 
 FRONTEND_URL = _as_origin(config("FRONTEND_URL", default="http://localhost:5173"))
 
-# Render injects the service's public hostname at runtime; without this the
-# deployed API would 400 every request with DisallowedHost.
-RENDER_EXTERNAL_HOSTNAME = config("RENDER_EXTERNAL_HOSTNAME", default="")
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-
 CSRF_TRUSTED_ORIGINS = [
     origin
-    for origin in (
-        FRONTEND_URL,
-        f"https://{RENDER_EXTERNAL_HOSTNAME}" if RENDER_EXTERNAL_HOSTNAME else "",
-    )
+    for origin in (FRONTEND_URL,)
     if origin.startswith("http")
 ]
 
 if not DEBUG:
-    # Render terminates TLS at its proxy, so Django only ever sees plain HTTP.
+    # TLS is terminated at the reverse proxy, so Django only ever sees plain HTTP.
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
     SESSION_COOKIE_SECURE = True
@@ -196,18 +187,15 @@ SIMPLE_JWT = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Write Chap Chap API",
+    "TITLE": "Penspan API",
     "DESCRIPTION": "Freelance writing marketplace with escrow, quality enforcement and AI screening.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
-# The deployed frontend's origin. Kept in source alongside the dev origins
-# because relying on the host to inject it failed repeatedly — env vars
-# declared in render.yaml never reached the running service, leaving the API
-# rejecting every browser request from its own frontend. An env var still
-# overrides; this is the floor, not the ceiling. Update if the site is renamed.
-DEPLOYED_FRONTEND_ORIGIN = "https://wcc-web.onrender.com"
+# The deployed frontend's origin, kept in source alongside the dev origins.
+# CORS_ALLOWED_ORIGINS can add more; this is the floor, not the ceiling.
+DEPLOYED_FRONTEND_ORIGIN = "https://penspan.com"
 
 CORS_ALLOWED_ORIGINS = [
     origin
@@ -222,12 +210,13 @@ CORS_ALLOWED_ORIGINS = [
     if origin
 ]
 
-for _origin in (FRONTEND_URL, DEPLOYED_FRONTEND_ORIGIN):
+for _origin in (FRONTEND_URL, DEPLOYED_FRONTEND_ORIGIN, "https://www.penspan.com"):
     if _origin and _origin not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(_origin)
 
-if DEPLOYED_FRONTEND_ORIGIN not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append(DEPLOYED_FRONTEND_ORIGIN)
+for _origin in (DEPLOYED_FRONTEND_ORIGIN, "https://www.penspan.com"):
+    if _origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_origin)
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -249,6 +238,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.orders.tasks.auto_approve_stale_submissions",
         "schedule": 3600.0,
     },
+    "flag-stale-payouts": {
+        "task": "apps.payments.tasks.flag_stale_payouts",
+        "schedule": 3600.0,
+    },
     "recalculate-writer-tiers": {
         "task": "apps.accounts.tasks.recalculate_all_writer_tiers",
         "schedule": 86400.0,  # daily
@@ -264,7 +257,8 @@ LATE_FINE_MAX_PERCENT = config("LATE_FINE_MAX_PERCENT", default=25, cast=int)
 REVISION_WINDOW_HOURS = config("REVISION_WINDOW_HOURS", default=72, cast=int)
 HUMANIZATION_PRICE_PER_PAGE = config("HUMANIZATION_PRICE_PER_PAGE", default=50, cast=int)
 HUMANIZATION_WORDS_PER_PAGE = config("HUMANIZATION_WORDS_PER_PAGE", default=250, cast=int)
-DOCUMENT_CHECK_PRICE = config("DOCUMENT_CHECK_PRICE", default=150, cast=int)
+# Flat price per document for the AI + similarity report bundle (KES).
+DOCUMENT_CHECK_PRICE = config("DOCUMENT_CHECK_PRICE", default=120, cast=int)
 
 AI_CONTENT_THRESHOLD = config("AI_CONTENT_THRESHOLD", default=20, cast=int)
 PLAGIARISM_THRESHOLD = config("PLAGIARISM_THRESHOLD", default=15, cast=int)
@@ -278,6 +272,19 @@ MPESA_CONSUMER_SECRET = config("MPESA_CONSUMER_SECRET", default="")
 MPESA_SHORTCODE = config("MPESA_SHORTCODE", default="")
 MPESA_PASSKEY = config("MPESA_PASSKEY", default="")
 MPESA_CALLBACK_URL = config("MPESA_CALLBACK_URL", default="")
+
+# B2C payouts (withdrawals sent straight to a writer's M-Pesa).
+MPESA_B2C_ENABLED = config("MPESA_B2C_ENABLED", default=False, cast=bool)
+MPESA_B2C_SHORTCODE = config("MPESA_B2C_SHORTCODE", default="")  # falls back to MPESA_SHORTCODE
+MPESA_INITIATOR_NAME = config("MPESA_INITIATOR_NAME", default="")
+MPESA_INITIATOR_PASSWORD = config("MPESA_INITIATOR_PASSWORD", default="")
+MPESA_SECURITY_CREDENTIAL = config("MPESA_SECURITY_CREDENTIAL", default="")
+MPESA_CERT_PATH = config("MPESA_CERT_PATH", default="")
+# Withdrawals above this need an admin to press "Pay via M-Pesa" (KES).
+MPESA_B2C_AUTO_LIMIT = config("MPESA_B2C_AUTO_LIMIT", default=20000, cast=int)
+# Optional overrides; by default both are built from FRONTEND_URL.
+MPESA_B2C_RESULT_URL = config("MPESA_B2C_RESULT_URL", default="")
+MPESA_B2C_TIMEOUT_URL = config("MPESA_B2C_TIMEOUT_URL", default="")
 
 FLUTTERWAVE_PUBLIC_KEY = config("FLUTTERWAVE_PUBLIC_KEY", default="")
 FLUTTERWAVE_SECRET_KEY = config("FLUTTERWAVE_SECRET_KEY", default="")

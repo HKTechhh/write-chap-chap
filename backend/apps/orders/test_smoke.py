@@ -5,7 +5,6 @@ chat (including a blocked contact leak) → deliver → approve → review → w
 """
 from datetime import timedelta
 from decimal import Decimal
-from io import BytesIO
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
@@ -15,10 +14,12 @@ from rest_framework.test import APIClient
 from apps.accounts.models import Role, User
 from apps.messaging.models import ContactLeakFlag, Message
 from apps.orders.models import Order, OrderStatus
-from apps.payments.models import Wallet, WalletTransaction
+from apps.payments.models import Wallet
 
 
 @override_settings(PLATFORM_FEE_PERCENT=12, CELERY_TASK_ALWAYS_EAGER=True)
+# Simulated M-Pesa, and never the real sandbox, even when backend/.env holds Daraja keys.
+@override_settings(DEBUG=True, MPESA_CONSUMER_KEY="", MPESA_CONSUMER_SECRET="", MPESA_SHORTCODE="", MPESA_PASSKEY="")
 class FullLifecycleSmokeTest(TestCase):
     def setUp(self):
         self.api = APIClient()
@@ -234,7 +235,7 @@ class FullLifecycleSmokeTest(TestCase):
         self.assertEqual(Decimal(created.data["budget"]), Decimal("100.00"))
         self.assertEqual(created.data["word_count"], 300)
 
-    def test_check_my_paper_is_public_and_priced_per_report(self):
+    def test_check_my_paper_is_public_and_priced_as_a_bundle(self):
         anonymous = APIClient()
         document = SimpleUploadedFile("paper.txt", b"hello world " * 100, content_type="text/plain")
 
@@ -242,14 +243,15 @@ class FullLifecycleSmokeTest(TestCase):
             "/api/check-requests/",
             {
                 "document": document,
-                "report_types": ["ai_content", "plagiarism"],
                 "contact_email": "visitor@example.com",
                 "contact_name": "Visitor",
+                "contact_phone": "0712345678",
             },
             format="multipart",
         )
         self.assertEqual(response.status_code, 201, response.data)
-        self.assertEqual(Decimal(response.data["total_price"]), Decimal("300.00"))
+        self.assertEqual(Decimal(response.data["total_price"]), Decimal("120.00"))
+        self.assertEqual(response.data["report_types"], ["ai_content", "similarity_links"])
         reference = response.data["reference"]
 
         tracked = anonymous.get(f"/api/check-requests/track/{reference}/")

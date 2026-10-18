@@ -1,7 +1,8 @@
 from django.conf import settings
 from rest_framework import serializers
 
-from .models import CheckReport, CheckRequest, ReportType
+from .payment import normalise_phone, payment_state
+from .models import BUNDLE_REPORT_TYPES, CheckReport, CheckRequest, ReportType
 
 
 class CheckReportSerializer(serializers.ModelSerializer):
@@ -30,8 +31,9 @@ class CheckReportSerializer(serializers.ModelSerializer):
 
 
 class CheckRequestCreateSerializer(serializers.ModelSerializer):
+    # Optional and informational: a check is always the AI + similarity bundle.
     report_types = serializers.ListField(
-        child=serializers.ChoiceField(choices=ReportType.choices), allow_empty=False
+        child=serializers.CharField(), required=False, write_only=True
     )
 
     class Meta:
@@ -54,12 +56,25 @@ class CheckRequestCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get("request")
         anonymous = not (request and request.user.is_authenticated)
+        phone = attrs.get("contact_phone") or (
+            getattr(request.user, "phone", "") if not anonymous else ""
+        )
+        normalised = normalise_phone(phone)
+        if not normalised:
+            raise serializers.ValidationError(
+                {"contact_phone": "Enter the Safaricom number to pay from, e.g. 0712345678."}
+            )
+        attrs["contact_phone"] = normalised
         if anonymous and not attrs.get("contact_email"):
             raise serializers.ValidationError(
                 {"contact_email": "We need an email address to send your report to."}
             )
-        if len(set(attrs["report_types"])) != len(attrs["report_types"]):
-            raise serializers.ValidationError({"report_types": "Duplicate report types selected."})
+        requested = attrs.pop("report_types", None)
+        if requested is not None and sorted(requested) != sorted(BUNDLE_REPORT_TYPES):
+            raise serializers.ValidationError(
+                {"report_types": "Document checks come as one bundle: AI report and similarity report together."}
+            )
+        attrs["report_types"] = list(BUNDLE_REPORT_TYPES)
         return attrs
 
     def create(self, validated_data):
@@ -78,16 +93,56 @@ class CheckRequestCreateSerializer(serializers.ModelSerializer):
         if document:
             instance.word_count = count_words_in_file(document)
 
-        instance.total_price = CheckRequest.calculate_price(validated_data["report_types"])
+        instance.total_price = CheckRequest.calculate_price()
+        # Hidden from the admin queue until the M-Pesa payment is confirmed.
+        instance.status = CheckRequest.Status.AWAITING_PAYMENT
         instance.save()
         return instance
 
 
+def _deliverable_slots(request, only_delivered):
+    """The two documents a client receives, one slot per report, in a fixed order.
+
+    ``only_delivered`` hides reports (and their scores and files) until the admin
+    has delivered the whole check, so a visitor with a reference cannot see work
+    that is still in progress or not yet released.
+    """
+    by_type = {report.report_type: report for report in request.reports.all()}
+    slots = []
+    for report_type in BUNDLE_REPORT_TYPES:
+        report = by_type.get(report_type)
+        visible = report is not None and (report.delivered_at is not None or not only_delivered)
+        if report is None:
+            state = "waiting"
+        elif report.delivered_at is not None:
+            state = "delivered"
+        else:
+            state = "uploaded"
+        if only_delivered and not visible and state == "uploaded":
+            state = "waiting"
+        slots.append(
+            {
+                "report_type": report_type,
+                "label": ReportType(report_type).label,
+                "state": state,
+                "report": CheckReportSerializer(report).data if visible else None,
+            }
+        )
+    return slots
+
+
 class CheckRequestSerializer(serializers.ModelSerializer):
+    """Admin view of a check, including reports that are not delivered yet."""
+
+    only_delivered = False
+
     reports = CheckReportSerializer(many=True, read_only=True)
+    deliverables = serializers.SerializerMethodField()
     requester_display = serializers.CharField(read_only=True)
     requester_email = serializers.CharField(read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
+    payment_state = serializers.SerializerMethodField()
+    payment_message = serializers.SerializerMethodField()
 
     class Meta:
         model = CheckRequest
@@ -108,14 +163,41 @@ class CheckRequestSerializer(serializers.ModelSerializer):
             "status",
             "status_display",
             "payment_status",
+            "payment_state",
+            "payment_message",
             "total_price",
             "currency",
             "delivered_at",
             "admin_notes",
             "reports",
+            "deliverables",
             "created_at",
         ]
         read_only_fields = fields
+
+    def get_payment_state(self, obj):
+        return payment_state(obj)[0]
+
+    def get_payment_message(self, obj):
+        return payment_state(obj)[1]
+
+    def get_deliverables(self, obj):
+        return _deliverable_slots(obj, self.only_delivered)
+
+
+class CheckRequestPublicSerializer(CheckRequestSerializer):
+    """What the requester sees: reports appear only once delivered, no admin notes."""
+
+    only_delivered = True
+    reports = serializers.SerializerMethodField()
+    admin_notes = serializers.SerializerMethodField()
+
+    def get_reports(self, obj):
+        delivered = [report for report in obj.reports.all() if report.delivered_at is not None]
+        return CheckReportSerializer(delivered, many=True).data
+
+    def get_admin_notes(self, obj):
+        return ""
 
 
 class CheckPricingSerializer(serializers.Serializer):
@@ -124,9 +206,10 @@ class CheckPricingSerializer(serializers.Serializer):
     @staticmethod
     def payload():
         return {
-            "price_per_report": settings.DOCUMENT_CHECK_PRICE,
+            "price": settings.DOCUMENT_CHECK_PRICE,
             "currency": "KES",
+            # Always both, never selectable: shown to the visitor as what is included.
             "report_types": [
-                {"value": value, "label": label} for value, label in ReportType.choices
+                {"value": value, "label": ReportType(value).label} for value in BUNDLE_REPORT_TYPES
             ],
         }

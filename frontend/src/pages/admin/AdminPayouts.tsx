@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Banknote, CheckCircle2, XCircle } from 'lucide-react'
+import { Banknote, CheckCircle2, Send, XCircle } from 'lucide-react'
 import { admin } from '@/api/endpoints'
 import { useAsync } from '@/hooks/useAsync'
 import { useToast } from '@/context/ToastContext'
@@ -11,7 +11,9 @@ import { PageIntro } from '@/pages/client/ClientDashboard'
 
 const TABS = [
   { value: 'pending', label: 'Pending' },
+  { value: 'processing', label: 'With M-Pesa' },
   { value: 'paid', label: 'Paid' },
+  { value: 'failed', label: 'Failed' },
   { value: 'rejected', label: 'Rejected' },
   { value: '', label: 'All' },
 ]
@@ -39,7 +41,7 @@ export default function AdminPayouts() {
     <div className="space-y-6">
       <PageIntro
         title="Withdrawal requests"
-        subtitle="The amount is already debited from the writer's wallet. Rejecting returns it."
+        subtitle={"The amount is already debited from the writer's wallet. 'Pay via M-Pesa' sends it through Daraja; rejecting returns it."}
       />
 
       <Tabs tabs={TABS} value={status} onChange={setStatus} />
@@ -64,7 +66,7 @@ export default function AdminPayouts() {
                       tone={
                         withdrawal.status === 'paid'
                           ? 'success'
-                          : withdrawal.status === 'rejected'
+                          : withdrawal.status === 'rejected' || withdrawal.status === 'failed'
                             ? 'danger'
                             : 'warning'
                       }
@@ -81,13 +83,33 @@ export default function AdminPayouts() {
                     · requested {formatDateTime(withdrawal.created_at)} · ref{' '}
                     {withdrawal.reference.slice(0, 8)}
                   </p>
+                  {withdrawal.mpesa_receipt && (
+                    <p className="mt-1 text-xs text-ink-600">M-Pesa receipt {withdrawal.mpesa_receipt}</p>
+                  )}
+                  {withdrawal.result_desc && (
+                    <p className="mt-1 text-xs text-ink-600">{withdrawal.result_desc}</p>
+                  )}
                   {withdrawal.notes && (
                     <p className="mt-1.5 text-xs italic text-ink-600">{withdrawal.notes}</p>
                   )}
                 </div>
 
-                {withdrawal.status === 'pending' && (
+                {(withdrawal.status === 'pending' || withdrawal.status === 'processing') && (
                   <div className="flex shrink-0 gap-2">
+                    {withdrawal.status === 'pending' && withdrawal.method === 'mpesa' && (
+                      <Button
+                        size="sm"
+                        icon={<Send className="h-3.5 w-3.5" />}
+                        onClick={() =>
+                          act(
+                            () => admin.payWithdrawalViaMpesa(withdrawal.id),
+                            'Sent to M-Pesa — waiting for confirmation',
+                          )
+                        }
+                      >
+                        Pay via M-Pesa
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="success"
@@ -107,10 +129,24 @@ export default function AdminPayouts() {
                       className="text-red-600 hover:bg-red-50"
                       icon={<XCircle className="h-3.5 w-3.5" />}
                       onClick={() =>
-                        act(
-                          () => admin.rejectWithdrawal(withdrawal.id, 'Rejected by admin'),
-                          'Rejected — funds returned to the wallet',
-                        )
+                        {
+                          if (
+                            withdrawal.status === 'processing' &&
+                            !window.confirm(
+                              'This payout is with M-Pesa. Only reject it if you have confirmed in the Daraja portal that it was NOT sent. Continue?',
+                            )
+                          )
+                            return
+                          void act(
+                            () =>
+                              admin.rejectWithdrawal(
+                                withdrawal.id,
+                                'Rejected by admin',
+                                withdrawal.status === 'processing',
+                              ),
+                            'Rejected — funds returned to the wallet',
+                          )
+                        }
                       }
                     >
                       Reject

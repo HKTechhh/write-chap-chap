@@ -277,9 +277,11 @@ export interface Withdrawal {
   net_amount: string
   method: string
   destination: string
-  status: 'pending' | 'processing' | 'paid' | 'rejected'
+  status: 'pending' | 'processing' | 'paid' | 'rejected' | 'failed'
   reference: string
   notes: string
+  mpesa_receipt: string
+  result_desc: string
   created_at: string
   processed_at: string | null
 }
@@ -369,6 +371,14 @@ export interface CheckReport {
   created_at: string
 }
 
+export interface CheckDeliverable {
+  report_type: string
+  label: string
+  /** waiting = not uploaded (or not released to the client yet), uploaded = admin only, delivered = client can download */
+  state: 'waiting' | 'uploaded' | 'delivered'
+  report: CheckReport | null
+}
+
 export interface CheckRequest {
   id: number
   reference: string
@@ -383,14 +393,17 @@ export interface CheckRequest {
   word_count: number | null
   report_types: string[]
   notes: string
-  status: 'pending' | 'processing' | 'processed' | 'delivered' | 'canceled'
+  status: 'awaiting_payment' | 'pending' | 'processing' | 'processed' | 'delivered' | 'canceled'
   status_display: string
   payment_status: 'unpaid' | 'paid' | 'waived'
+  payment_state: 'paid' | 'pending' | 'failed' | 'none'
+  payment_message: string
   total_price: string
   currency: string
   delivered_at: string | null
   admin_notes: string
   reports: CheckReport[]
+  deliverables: CheckDeliverable[]
   created_at: string
 }
 

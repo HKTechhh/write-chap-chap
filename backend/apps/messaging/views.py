@@ -1,4 +1,3 @@
-from django.db.models import Q
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
@@ -10,7 +9,7 @@ from apps.common.permissions import IsAdminRole
 from apps.orders.models import Order
 
 from .leak_detection import scan
-from .models import ContactLeakFlag, Conversation, Message
+from .models import ContactLeakFlag, Conversation
 from .serializers import (
     ContactLeakFlagSerializer,
     ConversationSerializer,
@@ -68,7 +67,7 @@ class OrderMessagesView(APIView):
                     "severity": blocked.scan_result.severity.value,
                     "masked_preview": blocked.scan_result.masked_text,
                     "guidance": (
-                        "Keep all communication and payment on Write Chap Chap. Escrow only "
+                        "Keep all communication and payment on Penspan. Escrow only "
                         "protects you while the work and the money stay on the platform."
                     ),
                 },

@@ -45,8 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // The API client fires this when a refresh token finally fails.
   useEffect(() => {
     const onExpired = () => setUser(null)
-    window.addEventListener('wcc:session-expired', onExpired)
-    return () => window.removeEventListener('wcc:session-expired', onExpired)
+    window.addEventListener('penspan:session-expired', onExpired)
+    return () => window.removeEventListener('penspan:session-expired', onExpired)
   }, [])
 
   const login = useCallback(async (username: string, password: string) => {

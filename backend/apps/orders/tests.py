@@ -7,7 +7,7 @@ from django.utils import timezone
 from apps.accounts.models import Role, User
 from apps.payments.models import EscrowTransaction, InsufficientFunds, Wallet
 
-from .models import Bid, BidStatus, Order, OrderStatus, OrderType
+from .models import Bid, BidStatus, Order, OrderStatus
 from .services import (
     EscrowError,
     apply_late_fine,

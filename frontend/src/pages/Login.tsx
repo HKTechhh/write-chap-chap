@@ -126,7 +126,7 @@ export function AuthLayout({
               Money in escrow. Deadlines enforced. Every delivery screened.
             </h2>
             <p className="mt-5 max-w-sm text-base leading-relaxed text-ink-400">
-              Write Chap Chap exists so good writers get paid reliably and clients never pay for
+              Penspan exists so good writers get paid reliably and clients never pay for
               work they haven't seen.
             </p>
             <div className="mt-10 flex gap-8">
@@ -135,7 +135,7 @@ export function AuthLayout({
               <MiniStat label="Late fine" value="5%/day" hint="capped at 25%" />
             </div>
           </div>
-          <p className="text-xs text-ink-600">© {new Date().getFullYear()} Write Chap Chap</p>
+          <p className="text-xs text-ink-600">© {new Date().getFullYear()} Penspan</p>
         </div>
       </div>
 

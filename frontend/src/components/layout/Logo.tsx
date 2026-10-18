@@ -1,40 +1,46 @@
 import { cn } from '@/lib/utils'
 
+// A simple pen nib, white on a blue rounded tile. Geometry matches public/brand/logo-mark.svg.
+const NIB =
+  'M27 23H37L41.5 36L32 53L22.5 36Z' +
+  'M32 31.4a2.6 2.6 0 1 0 0.01 0Z' +
+  'M31.15 35H32.85V48H31.15Z'
+
+export function LogoMark({ className }: { className?: string; variant?: 'dark' | 'light' }) {
+  return (
+    <svg viewBox="0 0 64 64" className={cn('h-9 w-9 shrink-0', className)} aria-hidden>
+      <rect width="64" height="64" rx="15" fill="#2563EB" />
+      <path
+        transform="translate(32 32) scale(1.12) translate(-32 -38)"
+        d={NIB}
+        fill="#FFFFFF"
+        fillRule="evenodd"
+      />
+    </svg>
+  )
+}
+
 export function Logo({
   className,
   variant = 'dark',
   showWordmark = true,
 }: {
   className?: string
+  /** `dark` = for light surfaces (flips with the theme); `light` = for always-dark surfaces. */
   variant?: 'dark' | 'light'
   showWordmark?: boolean
 }) {
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
-      <span className="theme-fixed relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 via-brand-600 to-teal-500 shadow-sm">
-        <svg viewBox="0 0 64 64" className="h-5 w-5" aria-hidden>
-          <path d="M14 22h6l4 14 4-14h6l4 14 4-14h6l-7 22h-7l-3-11-3 11h-7z" fill="#fff" />
-        </svg>
-        <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-gold-400 ring-2 ring-white" />
-      </span>
+      <LogoMark />
       {showWordmark && (
-        <span className="flex flex-col leading-none">
-          <span
-            className={cn(
-              'font-display text-[15px] font-extrabold tracking-tight',
-              variant === 'light' ? 'text-white' : 'text-ink-900',
-            )}
-          >
-            Write Chap Chap
-          </span>
-          <span
-            className={cn(
-              'mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]',
-              variant === 'light' ? 'text-white/60' : 'text-ink-400',
-            )}
-          >
-            Fast. Fair. Escrowed.
-          </span>
+        <span
+          className={cn(
+            'font-display text-[22px] font-extrabold leading-none tracking-tight',
+            variant === 'light' ? 'text-white' : 'text-ink-900',
+          )}
+        >
+          Penspan
         </span>
       )}
     </span>

@@ -4,6 +4,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AdminWithdrawalViewSet,
     FlutterwaveCallbackView,
+    MpesaB2CResultView,
+    MpesaB2CTimeoutView,
     MpesaCallbackView,
     SubscriptionView,
     TopUpView,
@@ -22,6 +24,8 @@ urlpatterns = [
     path("wallet/topup/", TopUpView.as_view(), name="wallet_topup"),
     path("subscription/", SubscriptionView.as_view(), name="subscription"),
     path("payments/mpesa/callback/", MpesaCallbackView.as_view(), name="mpesa_callback"),
+    path("payments/mpesa/b2c/result/<str:token>/", MpesaB2CResultView.as_view(), name="mpesa_b2c_result"),
+    path("payments/mpesa/b2c/timeout/<str:token>/", MpesaB2CTimeoutView.as_view(), name="mpesa_b2c_timeout"),
     path("payments/flutterwave/callback/", FlutterwaveCallbackView.as_view(), name="flw_callback"),
     path("", include(router.urls)),
 ]

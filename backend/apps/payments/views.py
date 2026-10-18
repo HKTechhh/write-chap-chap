@@ -15,6 +15,8 @@ from rest_framework.views import APIView
 from apps.accounts.models import Notification, notify
 from apps.common.permissions import IsAdminRole
 
+from apps.common.dispatch import dispatch
+
 from .gateways import GatewayError, flutterwave, mpesa
 from .models import (
     InsufficientFunds,
@@ -23,6 +25,13 @@ from .models import (
     Wallet,
     WalletTransaction,
     WithdrawalRequest,
+)
+from .payouts import (
+    PayoutError,
+    initiate_withdrawal_payout,
+    note_queue_timeout,
+    settle_b2c_result,
+    valid_callback_token,
 )
 from .serializers import (
     PaymentIntentSerializer,
@@ -125,6 +134,10 @@ def _settle_intent(intent):
     intent = PaymentIntent.objects.select_for_update().get(pk=intent.pk)
     if intent.status == PaymentIntent.Status.SUCCESS:
         return intent
+    if intent.check_request_id:
+        from apps.checks.payment import settle_check_payment
+
+        return settle_check_payment(intent)
     wallet, _ = Wallet.objects.get_or_create(user=intent.user)
     wallet.credit(
         intent.amount,
@@ -168,6 +181,30 @@ class MpesaCallbackView(APIView):
             intent.failure_reason = str(body.get("ResultDesc", ""))[:255]
             intent.save(update_fields=["status", "failure_reason", "raw_response", "updated_at"])
 
+        return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
+
+
+class MpesaB2CResultView(APIView):
+    """Daraja B2C result. Public, so the URL carries a secret token."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request, token):
+        if not valid_callback_token(token):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        settle_b2c_result(request.data)
+        return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
+
+
+class MpesaB2CTimeoutView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request, token):
+        if not valid_callback_token(token):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        note_queue_timeout(request.data)
         return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
 
 
@@ -224,7 +261,17 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
 
             raise ValidationError({"amount": str(exc)})
 
-        serializer.save(user=user, fee=fee, net_amount=net)
+        withdrawal = serializer.save(user=user, fee=fee, net_amount=net)
+
+        # Small M-Pesa withdrawals go straight out; bigger ones wait for an admin.
+        if (
+            settings.MPESA_B2C_ENABLED
+            and withdrawal.method == "mpesa"
+            and net <= Decimal(settings.MPESA_B2C_AUTO_LIMIT)
+        ):
+            from .tasks import send_withdrawal_payout
+
+            transaction.on_commit(lambda: dispatch(send_withdrawal_payout, withdrawal.pk))
 
         from apps.accounts.models import User
 
@@ -250,6 +297,12 @@ class AdminWithdrawalViewSet(viewsets.ReadOnlyModelViewSet):
         withdrawal = self.get_object()
         if withdrawal.status == WithdrawalRequest.Status.PAID:
             return Response({"detail": "Already paid."}, status=status.HTTP_400_BAD_REQUEST)
+        if withdrawal.status in (WithdrawalRequest.Status.REJECTED, WithdrawalRequest.Status.FAILED):
+            # The wallet was already refunded, so paying it again would be a double payout.
+            return Response(
+                {"detail": f"This withdrawal was {withdrawal.status} and refunded; it cannot be marked paid."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         withdrawal.status = WithdrawalRequest.Status.PAID
         withdrawal.processed_by = request.user
         withdrawal.processed_at = timezone.now()
@@ -264,12 +317,32 @@ class AdminWithdrawalViewSet(viewsets.ReadOnlyModelViewSet):
         )
         return Response(WithdrawalSerializer(withdrawal).data)
 
+    @action(detail=True, methods=["post"], url_path="pay-mpesa")
+    def pay_mpesa(self, request, pk=None):
+        """Send this withdrawal to the writer's M-Pesa through Daraja (B2C)."""
+        withdrawal = self.get_object()
+        try:
+            withdrawal = initiate_withdrawal_payout(withdrawal.pk, actor=request.user)
+        except PayoutError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(WithdrawalSerializer(withdrawal).data)
+
     @action(detail=True, methods=["post"])
     @transaction.atomic
     def reject(self, request, pk=None):
         withdrawal = self.get_object()
-        if withdrawal.status in (WithdrawalRequest.Status.PAID, WithdrawalRequest.Status.REJECTED):
+        if withdrawal.status in (
+            WithdrawalRequest.Status.PAID,
+            WithdrawalRequest.Status.REJECTED,
+            WithdrawalRequest.Status.FAILED,
+        ):
             return Response({"detail": "Already settled."}, status=status.HTTP_400_BAD_REQUEST)
+        if withdrawal.status == WithdrawalRequest.Status.PROCESSING and not request.data.get("confirm_not_sent"):
+            # Safaricom may still pay this out; refunding too would pay the writer twice.
+            return Response(
+                {"detail": "This payout is with M-Pesa. Confirm it was NOT sent (confirm_not_sent) before rejecting."},
+                status=status.HTTP_409_CONFLICT,
+            )
         # Money was debited on request, so a rejection must put it back.
         wallet, _ = Wallet.objects.get_or_create(user=withdrawal.user)
         wallet.credit(

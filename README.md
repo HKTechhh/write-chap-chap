@@ -1,12 +1,12 @@
-# Write Chap Chap
+# Penspan
 
 A freelance writing marketplace with escrow, quality enforcement, AI/plagiarism screening, and
 an off-platform contact guard.
 
-Built to the spec in [`WriteChapChap_Complete_Build_Plan.md`](./WriteChapChap_Complete_Build_Plan.md).
+Built to the spec in [`PenSpan_Complete_Build_Plan.md`](./PenSpan_Complete_Build_Plan.md).
 
 ```
-Write Chap Chap/
+Penspan/
 ├── backend/         Django 5 + DRF + Celery  (API, escrow, moderation, admin)
 ├── frontend/        Vite + React 18 + TypeScript + Tailwind  (client / writer / admin UI)
 └── .venv/           Python virtualenv (already created)
@@ -131,7 +131,13 @@ parses `.docx`/`.pdf`/`.txt` and counts words, then locks the budget at **KES 50
 price server-side — writers compete on delivery time and reputation instead.
 
 ### Document Check service
-Public "Check My Paper" form, **KES 150 flat per report**, routed only to the admin dashboard.
+Public "Check My Paper" form, **KES 120 flat per document**, routed only to the admin dashboard.
+One document goes in and two documents come out: an **AI report** and a **plagiarism /
+similarity report**. A single report cannot be ordered. The client pays up front: submitting sends an
+M-Pesa STK prompt to their phone, and the request only reaches the admin queue once Safaricom confirms
+the payment (a failed or cancelled prompt can be resent from the tracking panel). The admin sees both as slots to fill, a
+check can only be delivered once both are uploaded, and the requester sees neither (nor their
+scores) until delivery.
 Anonymous visitors can submit and track by reference. Writers have no access path to it at all
 — verified by a test — because letting them pre-test drafts against the same detector would
 defeat the screening.
@@ -141,6 +147,24 @@ M-Pesa Daraja (STK push) and Flutterwave adapters with callback handlers. **Both
 simulation mode when credentials are absent**, which is what makes the full lifecycle
 demonstrable today — top-ups credit immediately so you can walk an order end to end without
 live keys.
+
+### M-Pesa B2C payouts
+Withdrawals are debited from the wallet on request, then paid to the writer's M-Pesa through
+Daraja B2C (`apps/payments/payouts.py`). `pending → processing → paid`, or `failed` with the
+wallet refunded automatically when Safaricom reports a definite failure. Safaricom's result and
+timeout callbacks use a secret URL token derived from `SECRET_KEY`.
+
+- **Auto-pay:** with `MPESA_B2C_ENABLED=True`, withdrawals up to `MPESA_B2C_AUTO_LIMIT` go out
+  immediately. Larger ones need an admin to press **Pay via M-Pesa**.
+- **Uncertain outcomes are never refunded blindly.** A timeout or server error while submitting
+  leaves the withdrawal `processing` and alerts admins; refunding a payment that did go through
+  would pay the writer twice. Rejecting an in-flight payout requires explicit confirmation.
+- **Needs from Safaricom:** a B2C shortcode, an initiator name and password, and the public
+  certificate for your environment (set `MPESA_CERT_PATH`). The callback URLs must be public
+  HTTPS, which `https://penspan.com/api/payments/mpesa/b2c/...` is.
+- Without live credentials it simulates only when `DEBUG=True`; in production it refuses rather
+  than pretending to pay.
+- Not yet tested against Safaricom's sandbox. Do that before enabling it with real money.
 
 ### Trust & safety
 KYC gate before payout, writer tiers (New → Verified → Expert) computed from completed orders,
@@ -178,11 +202,14 @@ defaults are baked in — nothing below is required to run locally.
 | `LATE_FINE_PERCENT_PER_DAY` / `LATE_FINE_MAX_PERCENT` | `5` / `25` | Late-delivery fines |
 | `REVISION_WINDOW_HOURS` | `72` | Auto-approve window |
 | `HUMANIZATION_PRICE_PER_PAGE` / `_WORDS_PER_PAGE` | `50` / `250` | Humanization pricing |
-| `DOCUMENT_CHECK_PRICE` | `150` | Per report |
+| `DOCUMENT_CHECK_PRICE` | `120` | Per document (AI report + plagiarism/similarity report) |
 | `AI_CONTENT_THRESHOLD` / `PLAGIARISM_THRESHOLD` | `20` / `15` | Screening flag thresholds |
 | `CONTACT_LEAK_STRIKE_LIMIT` | `3` | Blocked attempts before a formal strike |
 | `GPTZERO_API_KEY` | — | Enables real screening |
 | `MPESA_*`, `FLUTTERWAVE_*` | — | Enables real payments |
+| `MPESA_B2C_ENABLED` | `False` | Send small withdrawals to M-Pesa automatically |
+| `MPESA_B2C_AUTO_LIMIT` | `20000` | Larger withdrawals wait for an admin to press "Pay via M-Pesa" |
+| `MPESA_INITIATOR_NAME` / `MPESA_INITIATOR_PASSWORD` / `MPESA_CERT_PATH` | — | B2C initiator; or set `MPESA_SECURITY_CREDENTIAL` directly |
 | `DATABASE_URL` | SQLite | Set a `postgres://…` URL for Postgres |
 
 ---
@@ -209,7 +236,7 @@ cd backend
 ../.venv/Scripts/python.exe manage.py test apps
 ```
 
-47 tests, all passing:
+81 tests, all passing:
 
 - **Contact-leak detection** (19) — every obfuscation form, plus false-positive guards
 - **Escrow** — funding, release, partial release, refund, double-settle protection
@@ -222,56 +249,9 @@ cd backend
 
 ---
 
-## Deploying to Render
+## Deployment
 
-`render.yaml` is a Blueprint that provisions the whole stack in one go: Postgres, Redis, the
-Django API, the React static site, and the Celery worker + beat scheduler.
-
-1. Push this repo to GitHub (Render deploys from a connected git remote).
-2. Render Dashboard → **New → Blueprint** → pick the repo. It reads `render.yaml`.
-3. Apply. First build runs `backend/render-build.sh`: installs deps, `collectstatic`,
-   `migrate`, then `seed_demo`.
-4. After the first deploy, set `CORS_ALLOWED_ORIGINS` on **wcc-api** to the static site's URL.
-
-### Cost — the blueprint is entirely free tier
-
-| Service | Plan |
-|---|---|
-| `wcc-db` (Postgres) | free |
-| `wcc-api` (Django) | free |
-| `wcc-web` (React static site) | free |
-
-There is deliberately **no Redis and no Celery worker**. Render has no free background workers,
-and a broker with no worker behind it is worse than no broker at all: `task.delay()` would
-succeed, queue the job, and nothing would ever consume it — screening would silently never run.
-So the API sets `CELERY_TASK_ALWAYS_EAGER=True` and tasks execute inline on the request instead.
-
-What that costs you — the *scheduled* work, not the screening:
-
-- Escrow does not auto-release after the 72h review window (clients must approve manually)
-- Late-delivery fines are never applied automatically
-- Writer tiers are not recalculated nightly
-
-AI/plagiarism screening still runs on every upload; it just happens inline rather than async.
-The "SCALING UP" comment block at the bottom of `render.yaml` has the exact services to add when
-you want the scheduled jobs.
-
-Two free-tier caveats worth knowing: free Postgres on Render expires after 30 days, and free web
-services spin down when idle, so the first request after a sleep takes ~30s.
-
-### Uploads need object storage
-
-Render's disk is ephemeral — deliverables, KYC documents and dispute evidence are wiped on
-every redeploy. Set `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and
-`AWS_S3_ENDPOINT_URL` (Cloudflare R2 works and has no egress fee) and Django switches to S3
-storage automatically. Files stay private and are served through time-limited signed URLs.
-
-### Before real users
-
-- Set `SEED_DEMO=false` on **wcc-api** so demo accounts stop being recreated, and delete the
-  seeded users — they all share a published password.
-- Add `GPTZERO_API_KEY` to enable real screening.
-- Add the M-Pesa and Flutterwave credentials to take real payments.
+Production runs on a DigitalOcean droplet. See [`deploy/README.md`](./deploy/README.md).
 
 ---
 
@@ -281,14 +261,12 @@ storage automatically. Files stay private and are served through time-limited si
 |---|---|
 | 0 — Document Check service | Done |
 | 1 — Auth, roles, orders, bidding, escrow, wallet, dashboards | Done |
-| 2 — M-Pesa + Flutterwave | Adapters, callbacks and simulation done; add live credentials |
+| 2 — M-Pesa + Flutterwave | STK push, B2C payouts, callbacks and simulation done; add live credentials and test in Daraja sandbox |
 | 3 — GPTZero, fine automation, disputes, tiering | Done |
 | 4 — Subscriptions, boosted bids, realtime chat, referrals | Subscriptions and boost field done; chat is polling, WebSockets not wired |
 
 Known gaps, stated plainly:
 
 - **Chat is polling** (20s), not WebSockets. Fine for MVP volume; Django Channels is the upgrade.
-- **M-Pesa B2C payouts** raise a clear error rather than paying out — they need initiator
-  credentials. Withdrawals currently go through the admin payout queue instead.
 - **No frontend unit tests.** Type-checking and the production build both pass, and the backend
   is covered by 47 tests, but the React components themselves have no test suite.

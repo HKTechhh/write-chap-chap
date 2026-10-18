@@ -134,11 +134,13 @@ export const notifications = {
 export const checks = {
   pricing: () =>
     api.get<{
-      price_per_report: number
+      price: number
       currency: string
       report_types: { value: string; label: string }[]
     }>('/api/check-requests/pricing/'),
   submit: (form: FormData) => api.upload<CheckRequest>('/api/check-requests/', form),
+  pay: (reference: string, phone: string) =>
+    api.post<CheckRequest>(`/api/check-requests/pay/${reference}/`, { phone }),
   track: (reference: string) => api.get<CheckRequest>(`/api/check-requests/track/${reference}/`),
   mine: () => api.get<CheckRequest[]>('/api/check-requests/mine/'),
 }
@@ -198,6 +200,8 @@ export const admin = {
     api.get<Paginated<Withdrawal>>(`/api/admin/withdrawals/${qs(params)}`),
   markWithdrawalPaid: (id: number, notes?: string) =>
     api.post(`/api/admin/withdrawals/${id}/mark-paid/`, { notes }),
-  rejectWithdrawal: (id: number, notes?: string) =>
-    api.post(`/api/admin/withdrawals/${id}/reject/`, { notes }),
+  rejectWithdrawal: (id: number, notes?: string, confirmNotSent?: boolean) =>
+    api.post(`/api/admin/withdrawals/${id}/reject/`, { notes, confirm_not_sent: confirmNotSent }),
+  payWithdrawalViaMpesa: (id: number) =>
+    api.post<Withdrawal>(`/api/admin/withdrawals/${id}/pay-mpesa/`),
 }

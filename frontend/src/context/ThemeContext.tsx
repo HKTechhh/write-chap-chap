@@ -10,7 +10,7 @@ export type ThemePreference = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
 
 /** Shared with the inline boot script in index.html — keep the two in step. */
-export const THEME_STORAGE_KEY = 'wcc.theme'
+export const THEME_STORAGE_KEY = 'penspan.theme'
 
 interface ThemeContextValue {
   /** What the user chose. */
