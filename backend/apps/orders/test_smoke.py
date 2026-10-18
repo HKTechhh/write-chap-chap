@@ -5,7 +5,6 @@ chat (including a blocked contact leak) → deliver → approve → review → w
 """
 from datetime import timedelta
 from decimal import Decimal
-from io import BytesIO
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
@@ -15,7 +14,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import Role, User
 from apps.messaging.models import ContactLeakFlag, Message
 from apps.orders.models import Order, OrderStatus
-from apps.payments.models import Wallet, WalletTransaction
+from apps.payments.models import Wallet
 
 
 @override_settings(PLATFORM_FEE_PERCENT=12, CELERY_TASK_ALWAYS_EAGER=True)

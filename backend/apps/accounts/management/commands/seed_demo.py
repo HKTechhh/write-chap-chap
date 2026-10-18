@@ -99,7 +99,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Demo data ready."))
         self.stdout.write("")
         self.stdout.write("  Sign in with any of these (password for all: " + PASSWORD + ")")
-        self.stdout.write(f"    admin   : admin")
+        self.stdout.write("    admin   : admin")
         self.stdout.write(f"    client  : {CLIENTS[0][0]}")
         self.stdout.write(f"    writer  : {WRITERS[0][0]}")
         self.stdout.write("")
