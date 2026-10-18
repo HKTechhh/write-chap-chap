@@ -1,4 +1,4 @@
-# Deploying PenSpan to DigitalOcean
+# Deploying Penspan to DigitalOcean
 
 One Ubuntu 24.04 droplet in Frankfurt (`fra1`) runs the whole stack with Docker Compose:
 
@@ -142,7 +142,7 @@ $SSH 'echo "15 2 * * * root /opt/penspan/deploy/backup-postgres.sh >> /var/log/p
 $SSH '/opt/penspan/deploy/backup-postgres.sh'     # run once now to prove it works
 ```
 
-`createsuperuser` makes a Django admin. PenSpan's own admin role also needs
+`createsuperuser` makes a Django admin. Penspan's own admin role also needs
 `role=admin`: sign in at https://penspan.com/admin/, open your user, and set **Role** to admin.
 
 If you want demo data while testing, set `SEED_DEMO=true` in `.env` before step 6.4. Every demo

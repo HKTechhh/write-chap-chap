@@ -23,7 +23,7 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-surface">
       <header className="sticky top-0 z-40 border-b border-ink-200/70 bg-surface/85 backdrop-blur-md">
         <div className="container-page flex h-[68px] items-center justify-between gap-4">
-          <Link to="/" aria-label="PenSpan home">
+          <Link to="/" aria-label="Penspan home">
             <Logo />
           </Link>
 
@@ -155,7 +155,7 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="mt-12 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-ink-500 sm:flex-row sm:items-center sm:justify-between">
-            <p>© {new Date().getFullYear()} PenSpan. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Penspan. All rights reserved.</p>
             <p>Payments in KES via M-Pesa and card. Nairobi, Kenya.</p>
           </div>
         </div>
