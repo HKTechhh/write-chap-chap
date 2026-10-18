@@ -321,4 +321,5 @@ class Command(BaseCommand):
             word_count=4200,
             report_types=["ai_content", "similarity_links"],
             notes="Need this before Friday's submission deadline please.",
+            payment_status="paid",
         )

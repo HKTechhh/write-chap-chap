@@ -1,6 +1,7 @@
 from django.conf import settings
 from rest_framework import serializers
 
+from .payment import normalise_phone, payment_state
 from .models import BUNDLE_REPORT_TYPES, CheckReport, CheckRequest, ReportType
 
 
@@ -55,6 +56,15 @@ class CheckRequestCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get("request")
         anonymous = not (request and request.user.is_authenticated)
+        phone = attrs.get("contact_phone") or (
+            getattr(request.user, "phone", "") if not anonymous else ""
+        )
+        normalised = normalise_phone(phone)
+        if not normalised:
+            raise serializers.ValidationError(
+                {"contact_phone": "Enter the Safaricom number to pay from, e.g. 0712345678."}
+            )
+        attrs["contact_phone"] = normalised
         if anonymous and not attrs.get("contact_email"):
             raise serializers.ValidationError(
                 {"contact_email": "We need an email address to send your report to."}
@@ -84,6 +94,8 @@ class CheckRequestCreateSerializer(serializers.ModelSerializer):
             instance.word_count = count_words_in_file(document)
 
         instance.total_price = CheckRequest.calculate_price()
+        # Hidden from the admin queue until the M-Pesa payment is confirmed.
+        instance.status = CheckRequest.Status.AWAITING_PAYMENT
         instance.save()
         return instance
 
@@ -129,6 +141,8 @@ class CheckRequestSerializer(serializers.ModelSerializer):
     requester_display = serializers.CharField(read_only=True)
     requester_email = serializers.CharField(read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
+    payment_state = serializers.SerializerMethodField()
+    payment_message = serializers.SerializerMethodField()
 
     class Meta:
         model = CheckRequest
@@ -149,6 +163,8 @@ class CheckRequestSerializer(serializers.ModelSerializer):
             "status",
             "status_display",
             "payment_status",
+            "payment_state",
+            "payment_message",
             "total_price",
             "currency",
             "delivered_at",
@@ -158,6 +174,12 @@ class CheckRequestSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = fields
+
+    def get_payment_state(self, obj):
+        return payment_state(obj)[0]
+
+    def get_payment_message(self, obj):
+        return payment_state(obj)[1]
 
     def get_deliverables(self, obj):
         return _deliverable_slots(obj, self.only_delivered)

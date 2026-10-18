@@ -1,4 +1,4 @@
-# PenSpan
+# Penspan
 
 A freelance writing marketplace with escrow, quality enforcement, AI/plagiarism screening, and
 an off-platform contact guard.
@@ -6,7 +6,7 @@ an off-platform contact guard.
 Built to the spec in [`PenSpan_Complete_Build_Plan.md`](./PenSpan_Complete_Build_Plan.md).
 
 ```
-PenSpan/
+Penspan/
 ├── backend/         Django 5 + DRF + Celery  (API, escrow, moderation, admin)
 ├── frontend/        Vite + React 18 + TypeScript + Tailwind  (client / writer / admin UI)
 └── .venv/           Python virtualenv (already created)
@@ -133,7 +133,9 @@ price server-side — writers compete on delivery time and reputation instead.
 ### Document Check service
 Public "Check My Paper" form, **KES 120 flat per document**, routed only to the admin dashboard.
 One document goes in and two documents come out: an **AI report** and a **plagiarism /
-similarity report**. A single report cannot be ordered. The admin sees both as slots to fill, a
+similarity report**. A single report cannot be ordered. The client pays up front: submitting sends an
+M-Pesa STK prompt to their phone, and the request only reaches the admin queue once Safaricom confirms
+the payment (a failed or cancelled prompt can be resent from the tracking panel). The admin sees both as slots to fill, a
 check can only be delivered once both are uploaded, and the requester sees neither (nor their
 scores) until delivery.
 Anonymous visitors can submit and track by reference. Writers have no access path to it at all
@@ -234,7 +236,7 @@ cd backend
 ../.venv/Scripts/python.exe manage.py test apps
 ```
 
-72 tests, all passing:
+81 tests, all passing:
 
 - **Contact-leak detection** (19) — every obfuscation form, plus false-positive guards
 - **Escrow** — funding, release, partial release, refund, double-settle protection

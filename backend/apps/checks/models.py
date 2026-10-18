@@ -25,6 +25,7 @@ class CheckRequest(TimeStampedModel):
     """
 
     class Status(models.TextChoices):
+        AWAITING_PAYMENT = "awaiting_payment", "Awaiting payment"
         PENDING = "pending", "Pending"
         PROCESSING = "processing", "Processing"
         PROCESSED = "processed", "Processed"
@@ -56,7 +57,7 @@ class CheckRequest(TimeStampedModel):
     report_types = models.JSONField(default=list, help_text="List of ReportType values.")
     notes = models.TextField(blank=True)
 
-    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING, db_index=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING, db_index=True)
     payment_status = models.CharField(
         max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID
     )

@@ -2,14 +2,17 @@ import type * as React from 'react'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
+  AlertTriangle,
   Check,
   CheckCircle2,
   Clock,
   Download,
   FileSearch,
   FileText,
+  Loader2,
   Search,
   ShieldCheck,
+  Smartphone,
   Upload,
 } from 'lucide-react'
 import { MarketingLayout } from '@/components/layout/MarketingLayout'
@@ -78,6 +81,7 @@ export default function CheckMyPaper() {
 
     if (!file) return setError('Attach the document you want checked.')
     if (!user && !contact.contact_email) return setError('We need an email to send the report to.')
+    if (!contact.contact_phone.trim()) return setError('Enter the M-Pesa number to pay from.')
 
     const form = new FormData()
     form.append('document', file)
@@ -90,7 +94,6 @@ export default function CheckMyPaper() {
     try {
       const created = await checks.submit(form)
       setResult(created)
-      toast.success('Request received', `Reference ${created.reference}`)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed.')
@@ -139,67 +142,20 @@ export default function CheckMyPaper() {
             {/* Form / receipt */}
             <div>
               {result ? (
-                <div className="card overflow-hidden">
-                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-5 text-white">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle2 className="h-6 w-6" />
-                      <div>
-                        <p className="text-lg font-bold">Request received</p>
-                        <p className="text-sm text-white/85">
-                          Keep your reference safe — you'll use it to collect the report.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <div className="rounded-2xl border-2 border-dashed border-brand-300 bg-brand-50 p-5 text-center">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">
-                        Your reference
-                      </p>
-                      <p className="mt-1.5 font-display text-3xl font-extrabold tracking-tight text-brand-800">
-                        {result.reference}
-                      </p>
-                    </div>
-
-                    <dl className="mt-6 space-y-3 text-sm">
-                      <Row label="Document" value={result.original_name || '—'} />
-                      <Row
-                        label="You will receive"
-                        value="2 documents: AI report + plagiarism / similarity report"
-                      />
-                      <Row label="Word count" value={result.word_count?.toLocaleString() ?? 'Not parsed'} />
-                      <Row
-                        label="Amount due"
-                        value={formatMoney(result.total_price)}
-                        strong
-                      />
-                    </dl>
-
-                    <Alert tone="info" className="mt-6">
-                      We'll email <span className="font-semibold">{result.requester_email}</span>{' '}
-                      when the report is ready. Payment instructions come with that email — you
-                      pay once the work is done, not before.
-                    </Alert>
-
-                    <Button
-                      variant="secondary"
-                      className="mt-6"
-                      fullWidth
-                      onClick={() => {
-                        setResult(null)
-                        setFile(null)
-                        setNotes('')
-                      }}
-                    >
-                      Submit another document
-                    </Button>
-                  </div>
-                </div>
+                <PaymentReceipt
+                  result={result}
+                  onUpdate={setResult}
+                  onReset={() => {
+                    setResult(null)
+                    setFile(null)
+                    setNotes('')
+                  }}
+                />
               ) : (
                 <form onSubmit={onSubmit} className="card p-6 sm:p-8">
                   <h2 className="text-xl font-bold text-ink-900">Submit a document</h2>
                   <p className="mt-1.5 text-sm text-ink-500">
-                    Takes about a minute. You only pay once the report is delivered.
+                    Takes about a minute. We'll send an M-Pesa prompt to your phone for the payment.
                   </p>
 
                   {error && (
@@ -269,8 +225,9 @@ export default function CheckMyPaper() {
                   </div>
 
                   {/* Contact */}
-                  {!user && (
-                    <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    {!user && (
+                      <>
                       <Input
                         name="contact_name"
                         label="Your name"
@@ -290,17 +247,21 @@ export default function CheckMyPaper() {
                         }
                         required
                       />
-                      <Input
-                        name="contact_phone"
-                        label="Phone (optional)"
-                        wrapClassName="sm:col-span-2"
-                        value={contact.contact_phone}
-                        onChange={(event) =>
-                          setContact({ ...contact, contact_phone: event.target.value })
-                        }
-                      />
-                    </div>
-                  )}
+                      </>
+                    )}
+                    <Input
+                      name="contact_phone"
+                      type="tel"
+                      label="M-Pesa number"
+                      hint="We send the KES payment prompt here, e.g. 0712 345 678"
+                      wrapClassName="sm:col-span-2"
+                      value={contact.contact_phone}
+                      onChange={(event) =>
+                        setContact({ ...contact, contact_phone: event.target.value })
+                      }
+                      required
+                    />
+                  </div>
 
                   <Textarea
                     name="notes"
@@ -320,7 +281,7 @@ export default function CheckMyPaper() {
                       <p className="text-2xl font-bold">{formatMoney(pricing.price)}</p>
                     </div>
                     <Button type="submit" variant="accent" size="lg" loading={submitting}>
-                      Submit request
+                      Pay with M-Pesa
                     </Button>
                   </div>
                 </form>
@@ -364,7 +325,7 @@ export default function CheckMyPaper() {
                         tone={
                           tracked.status === 'delivered'
                             ? 'success'
-                            : tracked.status === 'pending'
+                            : tracked.status === 'pending' || tracked.status === 'awaiting_payment'
                               ? 'warning'
                               : 'brand'
                         }
@@ -419,9 +380,9 @@ export default function CheckMyPaper() {
                 </h3>
                 <ol className="mt-4 space-y-4">
                   {[
-                    ['Upload', 'Send us the document. You get an AI report and a similarity report.'],
+                    ['Upload and pay', 'Send the document and approve the M-Pesa prompt on your phone. You get an AI report and a similarity report.'],
                     ['We run it', 'A human runs the checks — not an automated queue.'],
-                    ['You collect', 'Download the reports using your reference. Pay on delivery.'],
+                    ['You collect', 'Download both reports using your reference.'],
                   ].map(([title, body], index) => (
                     <li key={title} className="flex gap-3">
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
@@ -461,6 +422,141 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
       <dd className={cn('text-right', strong ? 'text-base font-bold text-ink-900' : 'font-medium text-ink-800')}>
         {value}
       </dd>
+    </div>
+  )
+}
+
+function PaymentReceipt({
+  result,
+  onUpdate,
+  onReset,
+}: {
+  result: CheckRequest
+  onUpdate: (next: CheckRequest) => void
+  onReset: () => void
+}) {
+  const toast = useToast()
+  const [phone, setPhone] = useState(result.contact_phone || '')
+  const [retrying, setRetrying] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const state = result.payment_state
+  const paid = state === 'paid'
+
+  // While the phone prompt is open, ask the server every 4s whether Safaricom has confirmed it.
+  useEffect(() => {
+    if (state !== 'pending') return
+    const timer = window.setInterval(async () => {
+      try {
+        const latest = await checks.track(result.reference)
+        if (latest.payment_state !== 'pending') {
+          onUpdate(latest)
+          if (latest.payment_state === 'paid') toast.success('Payment received', `Reference ${latest.reference}`)
+        }
+      } catch {
+        /* keep waiting; the next tick tries again */
+      }
+    }, 4000)
+    return () => window.clearInterval(timer)
+  }, [state, result.reference, onUpdate, toast])
+
+  const resend = async () => {
+    setRetrying(true)
+    try {
+      onUpdate(await checks.pay(result.reference, phone))
+      setEditing(false)
+    } catch (err) {
+      toast.error('Could not send the prompt', err instanceof Error ? err.message : undefined)
+    } finally {
+      setRetrying(false)
+    }
+  }
+
+  return (
+    <div className="card overflow-hidden">
+      <div
+        className={cn(
+          'px-6 py-5 text-white',
+          paid
+            ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+            : state === 'failed'
+              ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+              : 'bg-gradient-to-r from-brand-600 to-brand-500',
+        )}
+      >
+        <div className="flex items-center gap-3">
+          {paid ? <CheckCircle2 className="h-6 w-6" /> : state === 'failed' ? <AlertTriangle className="h-6 w-6" /> : <Smartphone className="h-6 w-6" />}
+          <div>
+            <p className="text-lg font-bold">
+              {paid ? 'Payment received' : state === 'failed' ? 'Payment not completed' : 'Check your phone'}
+            </p>
+            <p className="text-sm text-white/85">
+              {paid
+                ? 'Your document is with us. Keep your reference safe.'
+                : state === 'failed'
+                  ? result.payment_message
+                  : `Enter your M-Pesa PIN to pay ${formatMoney(result.total_price)}.`}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="p-6">
+        <div className="rounded-2xl border-2 border-dashed border-brand-300 bg-brand-50 p-5 text-center">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Your reference</p>
+          <p className="mt-1.5 font-display text-3xl font-extrabold tracking-tight text-brand-800">
+            {result.reference}
+          </p>
+        </div>
+
+        <dl className="mt-6 space-y-3 text-sm">
+          <Row label="Document" value={result.original_name || '—'} />
+          <Row label="You will receive" value="2 documents: AI report + plagiarism / similarity report" />
+          <Row label="Word count" value={result.word_count?.toLocaleString() ?? 'Not parsed'} />
+          <Row label={paid ? 'Amount paid' : 'Amount due'} value={formatMoney(result.total_price)} strong />
+        </dl>
+
+        {state === 'pending' && (
+          <Alert tone="info" className="mt-6">
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Waiting for M-Pesa to confirm. This page updates by itself.
+            </span>
+          </Alert>
+        )}
+
+        {paid && (
+          <Alert tone="success" className="mt-6">
+            We'll email <span className="font-semibold">{result.requester_email}</span> when both
+            reports are ready. You can also track it here with your reference.
+          </Alert>
+        )}
+
+        {!paid && (
+          <div className="mt-6 space-y-3">
+            {(state === 'failed' || editing) && (
+              <Input
+                name="retry_phone"
+                type="tel"
+                label="M-Pesa number"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+              />
+            )}
+            {state === 'failed' || editing ? (
+              <Button fullWidth variant="accent" loading={retrying} onClick={resend}>
+                Send the M-Pesa prompt again
+              </Button>
+            ) : (
+              <Button fullWidth variant="secondary" onClick={() => setEditing(true)}>
+                Didn't get a prompt? Resend
+              </Button>
+            )}
+          </div>
+        )}
+
+        <Button variant="secondary" className="mt-3" fullWidth onClick={onReset}>
+          Submit another document
+        </Button>
+      </div>
     </div>
   )
 }

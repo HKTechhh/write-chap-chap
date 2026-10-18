@@ -1,4 +1,4 @@
-# PenSpan — Complete Build Plan
+# Penspan — Complete Build Plan
 ### A freelance writing marketplace with escrow, quality enforcement, and AI/plagiarism screening
 
 ---
@@ -219,7 +219,7 @@ Same underlying component library and page patterns for both (so it's one codeba
 
 - **Shared foundation:** one component library, one typography scale, one spacing system — this is what keeps both role experiences feeling like the same professional product rather than two disconnected apps
 - **Brand color:** deep teal or indigo as the primary shared color (professional, trustworthy — avoid generic blue-admin-panel look)
-- **Role-based accent, not a redesign:** client dashboard uses the primary teal/indigo as its accent (calm, trust-building — appropriate for someone spending money); writer dashboard uses a warm gold/amber accent (energy, opportunity — appropriate for someone earning, and ties nicely into the PenSpan brand's gold highlights). Same cards, same nav pattern, same fonts — only the accent color and dashboard content change, which is enough to make each feel tailored without fragmenting the design system
+- **Role-based accent, not a redesign:** client dashboard uses the primary teal/indigo as its accent (calm, trust-building — appropriate for someone spending money); writer dashboard uses a warm gold/amber accent (energy, opportunity — appropriate for someone earning, and ties nicely into the Penspan brand's gold highlights). Same cards, same nav pattern, same fonts — only the accent color and dashboard content change, which is enough to make each feel tailored without fragmenting the design system
 - **Status colors** used only on badges/pills, not backgrounds: green = paid/completed, amber = in progress, red = disputed/flagged, purple = escrowed
 - **Typography:** one clean sans-serif (e.g. Inter or Manrope), generous line height, no more than 2 font weights per screen
 - **Layout:** generous white space, cards with soft shadows instead of dense tables where possible, one primary action per screen clearly emphasized
@@ -310,7 +310,7 @@ Same underlying component library and page patterns for both (so it's one codeba
 | GPTZero scan on every deliverable | Built; queued to the Celery worker |
 | Disputes and admin arbitration | Built |
 | Humanization orders (KES 50 per 250 words, auto word count, locked price) | Built |
-| Document Check (admin-only, KES 120, AI report + plagiarism/similarity report, always both) | Built |
+| Document Check (admin-only, KES 120 paid up front by M-Pesa STK prompt, AI report + plagiarism/similarity report, always both) | Built |
 | Verified reviews (completed orders only) | Built |
 | Separate client and writer dashboards, simplified navigation | Built |
 | WhatsApp support button | Built |
@@ -319,7 +319,7 @@ Same underlying component library and page patterns for both (so it's one codeba
 | M-Pesa STK push and Flutterwave | Built; add live credentials |
 | M-Pesa B2C payouts | Built; needs Safaricom credentials and a Daraja sandbox test |
 | Writer subscriptions | Built (model and API) |
-| PenSpan brand, logo, favicons, og-image, email base template | Built |
+| Penspan brand, logo, favicons, og-image, email base template | Built |
 | Docker, Caddy HTTPS, nightly backups, deploy scripts | Built; not yet run on a real droplet |
 | Boosted bids (paid placement) | Partial: the field exists, no purchase flow |
 | Real-time chat (Django Channels) | Not built: chat polls every 20 seconds |

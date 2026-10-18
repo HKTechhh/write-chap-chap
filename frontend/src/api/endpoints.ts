@@ -139,6 +139,8 @@ export const checks = {
       report_types: { value: string; label: string }[]
     }>('/api/check-requests/pricing/'),
   submit: (form: FormData) => api.upload<CheckRequest>('/api/check-requests/', form),
+  pay: (reference: string, phone: string) =>
+    api.post<CheckRequest>(`/api/check-requests/pay/${reference}/`, { phone }),
   track: (reference: string) => api.get<CheckRequest>(`/api/check-requests/track/${reference}/`),
   mine: () => api.get<CheckRequest[]>('/api/check-requests/mine/'),
 }

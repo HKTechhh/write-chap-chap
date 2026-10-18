@@ -393,9 +393,11 @@ export interface CheckRequest {
   word_count: number | null
   report_types: string[]
   notes: string
-  status: 'pending' | 'processing' | 'processed' | 'delivered' | 'canceled'
+  status: 'awaiting_payment' | 'pending' | 'processing' | 'processed' | 'delivered' | 'canceled'
   status_display: string
   payment_status: 'unpaid' | 'paid' | 'waived'
+  payment_state: 'paid' | 'pending' | 'failed' | 'none'
+  payment_message: string
   total_price: string
   currency: string
   delivered_at: string | null

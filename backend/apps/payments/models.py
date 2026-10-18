@@ -148,11 +148,23 @@ class PaymentIntent(TimeStampedModel):
         FAILED = "failed", "Failed"
         CANCELED = "canceled", "Canceled"
 
+    # Null for anonymous Document Check payers (they have no account).
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="payment_intents"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="payment_intents",
+        null=True,
+        blank=True,
     )
     order = models.ForeignKey(
         "orders.Order", on_delete=models.SET_NULL, null=True, blank=True, related_name="payment_intents"
+    )
+    check_request = models.ForeignKey(
+        "checks.CheckRequest",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payment_intents",
     )
     provider = models.CharField(max_length=15, choices=Provider.choices, default=Provider.MPESA)
     amount = models.DecimalField(max_digits=12, decimal_places=2)

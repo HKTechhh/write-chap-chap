@@ -120,7 +120,7 @@ def _apply_strike(sender, flag, result):
             sender,
             "Warning: contact sharing is not allowed",
             f"That message was blocked. {remaining} more attempt(s) will add a strike "
-            "to your account. Keep all communication on PenSpan so escrow "
+            "to your account. Keep all communication on Penspan so escrow "
             "can protect your payment.",
             Notification.Kind.MODERATION,
         )

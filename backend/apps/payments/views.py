@@ -134,6 +134,10 @@ def _settle_intent(intent):
     intent = PaymentIntent.objects.select_for_update().get(pk=intent.pk)
     if intent.status == PaymentIntent.Status.SUCCESS:
         return intent
+    if intent.check_request_id:
+        from apps.checks.payment import settle_check_payment
+
+        return settle_check_payment(intent)
     wallet, _ = Wallet.objects.get_or_create(user=intent.user)
     wallet.credit(
         intent.amount,

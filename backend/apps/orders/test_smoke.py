@@ -233,6 +233,7 @@ class FullLifecycleSmokeTest(TestCase):
         self.assertEqual(Decimal(created.data["budget"]), Decimal("100.00"))
         self.assertEqual(created.data["word_count"], 300)
 
+    @override_settings(DEBUG=True)  # simulated M-Pesa prompt settles at once
     def test_check_my_paper_is_public_and_priced_as_a_bundle(self):
         anonymous = APIClient()
         document = SimpleUploadedFile("paper.txt", b"hello world " * 100, content_type="text/plain")
@@ -243,6 +244,7 @@ class FullLifecycleSmokeTest(TestCase):
                 "document": document,
                 "contact_email": "visitor@example.com",
                 "contact_name": "Visitor",
+                "contact_phone": "0712345678",
             },
             format="multipart",
         )

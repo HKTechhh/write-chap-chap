@@ -54,7 +54,7 @@ const BASE_URL = resolveBaseUrl(import.meta.env.VITE_API_BASE_URL)
 // a network error and the app looks healthy while doing nothing.
 if (!BASE_URL && !isLocalHost()) {
   console.error(
-    '[PenSpan] No API base URL resolved. Every API call will return ' +
+    '[Penspan] No API base URL resolved. Every API call will return ' +
       'the SPA index.html instead of JSON.',
   )
 }

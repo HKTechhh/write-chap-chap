@@ -1,3 +1,5 @@
+import logging
+
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
@@ -7,8 +9,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import Notification, notify
+from apps.payments.gateways import GatewayError
 from apps.common.permissions import IsAdminRole
 
+from .payment import normalise_phone, start_payment
 from .models import BUNDLE_REPORT_TYPES, CheckReport, CheckRequest
 from .serializers import (
     CheckPricingSerializer,
@@ -17,6 +21,9 @@ from .serializers import (
     CheckRequestPublicSerializer,
     CheckRequestSerializer,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class CheckPricingView(APIView):
@@ -46,21 +53,36 @@ class CheckRequestViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         instance = serializer.save()
 
-        from apps.accounts.models import User
+        # Prompt the client's phone for the KES 120 payment. The request stays hidden from
+        # the admin queue until Safaricom confirms it; if the prompt can't be sent the
+        # client can retry from the tracking panel.
+        try:
+            start_payment(instance, serializer.validated_data["contact_phone"])
+        except GatewayError as exc:
+            logger.warning("Document check %s: STK push failed: %s", instance.reference, exc)
 
-        for admin in User.objects.filter(is_staff=True)[:10]:
-            notify(
-                admin,
-                "New document check request",
-                f"{instance.requester_display} requested an AI + similarity check "
-                f"— {instance.reference}.",
-                Notification.Kind.SYSTEM,
-                link="/admin/checks",
-            )
-
+        instance.refresh_from_db()
         return Response(
             CheckRequestPublicSerializer(instance).data, status=status.HTTP_201_CREATED
         )
+
+    @action(detail=False, methods=["post"], url_path="pay/(?P<reference>[^/.]+)")
+    def pay(self, request, reference=None):
+        """Send the M-Pesa prompt again (wrong PIN, timeout, cancelled prompt)."""
+        instance = CheckRequest.objects.filter(reference__iexact=reference).first()
+        if not instance:
+            return Response({"detail": "No request found with that reference."}, status=404)
+        if instance.payment_status != CheckRequest.PaymentStatus.UNPAID:
+            return Response({"detail": "This request is already paid."}, status=400)
+        phone = normalise_phone(request.data.get("phone") or instance.contact_phone)
+        if not phone:
+            return Response({"detail": "Enter a valid Safaricom number, e.g. 0712345678."}, status=400)
+        try:
+            start_payment(instance, phone)
+        except GatewayError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        instance.refresh_from_db()
+        return Response(CheckRequestPublicSerializer(instance).data)
 
     @action(detail=False, methods=["get"], url_path="track/(?P<reference>[^/.]+)")
     def track(self, request, reference=None):
@@ -89,11 +111,20 @@ class AdminCheckRequestViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["status", "payment_status"]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # Unpaid submissions are not work yet; show them only when asked for explicitly.
+        if self.action == "list" and not self.request.query_params.get("status"):
+            qs = qs.exclude(status=CheckRequest.Status.AWAITING_PAYMENT)
+        return qs
+
     @action(detail=True, methods=["post"], url_path="mark-paid")
     def mark_paid(self, request, pk=None):
         instance = self.get_object()
         instance.payment_status = CheckRequest.PaymentStatus.PAID
-        instance.save(update_fields=["payment_status", "updated_at"])
+        if instance.status == CheckRequest.Status.AWAITING_PAYMENT:
+            instance.status = CheckRequest.Status.PENDING
+        instance.save(update_fields=["payment_status", "status", "updated_at"])
         return Response(CheckRequestSerializer(instance).data)
 
     @action(detail=True, methods=["post"], url_path="start")

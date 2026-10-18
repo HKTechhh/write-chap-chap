@@ -135,7 +135,7 @@ def initiate_withdrawal_payout(withdrawal_id, actor=None):
             phone=withdrawal.destination,
             amount=Decimal(withdrawal.net_amount),
             reference=str(withdrawal.reference),
-            remarks="PenSpan writer payout",
+            remarks="Penspan writer payout",
         )
     except GatewayError as exc:
         withdrawal.refresh_from_db()

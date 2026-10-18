@@ -1,4 +1,4 @@
-"""Django settings for the PenSpan platform."""
+"""Django settings for the Penspan platform."""
 from datetime import timedelta
 from pathlib import Path
 
@@ -187,7 +187,7 @@ SIMPLE_JWT = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "PenSpan API",
+    "TITLE": "Penspan API",
     "DESCRIPTION": "Freelance writing marketplace with escrow, quality enforcement and AI screening.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
