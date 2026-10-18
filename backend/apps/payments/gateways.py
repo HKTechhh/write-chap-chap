@@ -16,7 +16,16 @@ logger = logging.getLogger(__name__)
 
 
 class GatewayError(Exception):
-    pass
+    """A provider call failed.
+
+    ``definitive`` is True only when the provider clearly *refused* the request,
+    so no money moved and it is safe to retry. A timeout or 5xx is ambiguous:
+    the provider may have accepted it, so callers must not assume nothing was sent.
+    """
+
+    def __init__(self, message, definitive=False):
+        super().__init__(message)
+        self.definitive = definitive
 
 
 # ------------------------------------------------------------------- M-Pesa
@@ -99,14 +108,96 @@ class MpesaGateway:
         except requests.RequestException as exc:
             raise GatewayError(f"M-Pesa STK push failed: {exc}") from exc
 
-    def b2c_payout(self, *, phone, amount, reference, remarks="Writer payout"):
-        """Send money out to a writer. Requires B2C credentials in production."""
-        if not self.is_configured:
-            return self._simulate(phone, amount, reference, kind="payout")
-        raise GatewayError(
-            "B2C payouts need initiator credentials and a security credential; "
-            "configure them before enabling automatic withdrawals."
+    # ---- B2C (payouts)
+
+    @property
+    def is_b2c_configured(self):
+        return bool(
+            settings.MPESA_CONSUMER_KEY
+            and settings.MPESA_CONSUMER_SECRET
+            and (settings.MPESA_B2C_SHORTCODE or settings.MPESA_SHORTCODE)
+            and settings.MPESA_INITIATOR_NAME
+            and (
+                settings.MPESA_SECURITY_CREDENTIAL
+                or (settings.MPESA_INITIATOR_PASSWORD and settings.MPESA_CERT_PATH)
+            )
         )
+
+    @staticmethod
+    def security_credential():
+        """The initiator password encrypted with Safaricom's public certificate.
+
+        Use MPESA_SECURITY_CREDENTIAL if you already generated it, otherwise set
+        MPESA_INITIATOR_PASSWORD plus MPESA_CERT_PATH (the certificate downloaded
+        from the Daraja portal for your environment).
+        """
+        if settings.MPESA_SECURITY_CREDENTIAL:
+            return settings.MPESA_SECURITY_CREDENTIAL
+        try:
+            from cryptography import x509
+            from cryptography.hazmat.primitives.asymmetric import padding
+
+            with open(settings.MPESA_CERT_PATH, "rb") as handle:
+                certificate = x509.load_pem_x509_certificate(handle.read())
+            encrypted = certificate.public_key().encrypt(
+                settings.MPESA_INITIATOR_PASSWORD.encode(), padding.PKCS1v15()
+            )
+        except (OSError, ValueError) as exc:
+            raise GatewayError(f"Could not build the M-Pesa security credential: {exc}", definitive=True)
+        return base64.b64encode(encrypted).decode()
+
+    def b2c_payout(self, *, phone, amount, reference, remarks="Writer payout"):
+        """Send money to a customer's M-Pesa. Returns the provider's acceptance payload.
+
+        Acceptance only means Safaricom queued the request; the final outcome
+        arrives later on the result URL. ``reference`` becomes the
+        OriginatorConversationID, which Daraja echoes back so a result can be
+        matched to a withdrawal and a retry cannot pay twice.
+        """
+        if not self.is_b2c_configured:
+            if settings.DEBUG:
+                return self._simulate(phone, amount, reference, kind="payout")
+            raise GatewayError(
+                "M-Pesa B2C is not configured (initiator name, security credential, shortcode).",
+                definitive=True,
+            )
+
+        from .payouts import b2c_result_url, b2c_timeout_url
+
+        payload = {
+            "OriginatorConversationID": str(reference),
+            "InitiatorName": settings.MPESA_INITIATOR_NAME,
+            "SecurityCredential": self.security_credential(),
+            "CommandID": "BusinessPayment",
+            "Amount": int(amount),
+            "PartyA": settings.MPESA_B2C_SHORTCODE or settings.MPESA_SHORTCODE,
+            "PartyB": self.normalize_phone(phone),
+            "Remarks": remarks[:100],
+            "QueueTimeOutURL": b2c_timeout_url(),
+            "ResultURL": b2c_result_url(),
+            "Occasion": str(reference)[:100],
+        }
+        try:
+            response = requests.post(
+                f"{self.base_url}/mpesa/b2c/v3/paymentrequest",
+                json=payload,
+                headers={"Authorization": f"Bearer {self._access_token()}"},
+                timeout=45,
+            )
+        except requests.RequestException as exc:
+            # We may or may not have reached Safaricom: treat as uncertain.
+            raise GatewayError(f"M-Pesa B2C request did not complete: {exc}") from exc
+
+        try:
+            body = response.json()
+        except ValueError:
+            body = {}
+        if response.status_code >= 500:
+            raise GatewayError(f"M-Pesa B2C returned HTTP {response.status_code}.")
+        if response.status_code >= 400 or str(body.get("ResponseCode", "")) != "0":
+            reason = body.get("errorMessage") or body.get("ResponseDescription") or response.text[:200]
+            raise GatewayError(f"M-Pesa refused the payout: {reason}", definitive=True)
+        return {"simulated": False, **body}
 
     @staticmethod
     def _simulate(phone, amount, reference, kind="collection"):

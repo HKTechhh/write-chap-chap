@@ -277,9 +277,11 @@ export interface Withdrawal {
   net_amount: string
   method: string
   destination: string
-  status: 'pending' | 'processing' | 'paid' | 'rejected'
+  status: 'pending' | 'processing' | 'paid' | 'rejected' | 'failed'
   reference: string
   notes: string
+  mpesa_receipt: string
+  result_desc: string
   created_at: string
   processed_at: string | null
 }

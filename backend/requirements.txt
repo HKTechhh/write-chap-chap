@@ -16,3 +16,4 @@ boto3==1.35.81
 whitenoise==6.8.2
 gunicorn==23.0.0
 drf-spectacular==0.28.0
+cryptography==43.0.3

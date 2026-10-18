@@ -1,8 +1,10 @@
+import re
 from decimal import Decimal
 
 from django.conf import settings
 from rest_framework import serializers
 
+from .gateways import MpesaGateway
 from .models import (
     EscrowTransaction,
     PaymentIntent,
@@ -79,10 +81,15 @@ class WithdrawalSerializer(serializers.ModelSerializer):
             "status",
             "reference",
             "notes",
+            "mpesa_receipt",
+            "result_desc",
             "created_at",
             "processed_at",
         ]
-        read_only_fields = ["fee", "net_amount", "status", "reference", "processed_at", "created_at"]
+        read_only_fields = [
+            "fee", "net_amount", "status", "reference", "processed_at", "created_at",
+            "mpesa_receipt", "result_desc",
+        ]
 
     def validate_amount(self, value):
         fee = Decimal(str(settings.WITHDRAWAL_FEE_FLAT))
@@ -96,6 +103,16 @@ class WithdrawalSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         wallet = getattr(user, "wallet", None)
         amount = attrs["amount"]
+        if attrs.get("method", "mpesa") == "mpesa":
+            # M-Pesa moves whole shillings only, and needs a real Safaricom/Airtel number.
+            if amount != amount.to_integral_value():
+                raise serializers.ValidationError({"amount": "M-Pesa withdrawals must be whole shillings."})
+            phone = MpesaGateway.normalize_phone(attrs["destination"])
+            if not re.fullmatch(r"254[17]\d{8}", phone):
+                raise serializers.ValidationError(
+                    {"destination": "Enter a valid Kenyan M-Pesa number, e.g. 0712345678."}
+                )
+            attrs["destination"] = phone
         if not wallet or wallet.balance < amount:
             raise serializers.ValidationError(
                 {"amount": f"Insufficient balance. Available: KES {wallet.balance if wallet else 0}."}

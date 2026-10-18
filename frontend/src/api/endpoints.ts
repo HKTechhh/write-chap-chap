@@ -198,6 +198,8 @@ export const admin = {
     api.get<Paginated<Withdrawal>>(`/api/admin/withdrawals/${qs(params)}`),
   markWithdrawalPaid: (id: number, notes?: string) =>
     api.post(`/api/admin/withdrawals/${id}/mark-paid/`, { notes }),
-  rejectWithdrawal: (id: number, notes?: string) =>
-    api.post(`/api/admin/withdrawals/${id}/reject/`, { notes }),
+  rejectWithdrawal: (id: number, notes?: string, confirmNotSent?: boolean) =>
+    api.post(`/api/admin/withdrawals/${id}/reject/`, { notes, confirm_not_sent: confirmNotSent }),
+  payWithdrawalViaMpesa: (id: number) =>
+    api.post<Withdrawal>(`/api/admin/withdrawals/${id}/pay-mpesa/`),
 }

@@ -177,6 +177,7 @@ class WithdrawalRequest(TimeStampedModel):
         PROCESSING = "processing", "Processing"
         PAID = "paid", "Paid"
         REJECTED = "rejected", "Rejected"
+        FAILED = "failed", "Failed"  # M-Pesa reported failure; wallet already refunded
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="withdrawals"
@@ -197,6 +198,12 @@ class WithdrawalRequest(TimeStampedModel):
     )
     processed_at = models.DateTimeField(null=True, blank=True)
     notes = models.CharField(max_length=255, blank=True)
+    # M-Pesa B2C bookkeeping. `reference` doubles as Daraja's OriginatorConversationID.
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    provider_reference = models.CharField(max_length=128, blank=True, help_text="Daraja ConversationID.")
+    mpesa_receipt = models.CharField(max_length=40, blank=True)
+    result_desc = models.CharField(max_length=255, blank=True)
+    raw_response = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["-created_at"]

@@ -126,7 +126,7 @@ export default function CheckMyPaper() {
               Check my paper
             </h1>
             <p className="mt-5 text-balance text-lg leading-relaxed text-ink-400">
-              Upload a document, choose your reports, and we'll run the checks and send the
+              Upload a document and we'll run both the AI and similarity checks and send the
               results back. No marketplace account needed.
             </p>
           </div>
@@ -423,7 +423,7 @@ export default function CheckMyPaper() {
                 </h3>
                 <ol className="mt-4 space-y-4">
                   {[
-                    ['Upload', 'Send us the document and pick the reports you need.'],
+                    ['Upload', 'Send us the document. You get an AI report and a similarity report.'],
                     ['We run it', 'A human runs the checks — not an automated queue.'],
                     ['You collect', 'Download the reports using your reference. Pay on delivery.'],
                   ].map(([title, body], index) => (

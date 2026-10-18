@@ -238,6 +238,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.orders.tasks.auto_approve_stale_submissions",
         "schedule": 3600.0,
     },
+    "flag-stale-payouts": {
+        "task": "apps.payments.tasks.flag_stale_payouts",
+        "schedule": 3600.0,
+    },
     "recalculate-writer-tiers": {
         "task": "apps.accounts.tasks.recalculate_all_writer_tiers",
         "schedule": 86400.0,  # daily
@@ -268,6 +272,19 @@ MPESA_CONSUMER_SECRET = config("MPESA_CONSUMER_SECRET", default="")
 MPESA_SHORTCODE = config("MPESA_SHORTCODE", default="")
 MPESA_PASSKEY = config("MPESA_PASSKEY", default="")
 MPESA_CALLBACK_URL = config("MPESA_CALLBACK_URL", default="")
+
+# B2C payouts (withdrawals sent straight to a writer's M-Pesa).
+MPESA_B2C_ENABLED = config("MPESA_B2C_ENABLED", default=False, cast=bool)
+MPESA_B2C_SHORTCODE = config("MPESA_B2C_SHORTCODE", default="")  # falls back to MPESA_SHORTCODE
+MPESA_INITIATOR_NAME = config("MPESA_INITIATOR_NAME", default="")
+MPESA_INITIATOR_PASSWORD = config("MPESA_INITIATOR_PASSWORD", default="")
+MPESA_SECURITY_CREDENTIAL = config("MPESA_SECURITY_CREDENTIAL", default="")
+MPESA_CERT_PATH = config("MPESA_CERT_PATH", default="")
+# Withdrawals above this need an admin to press "Pay via M-Pesa" (KES).
+MPESA_B2C_AUTO_LIMIT = config("MPESA_B2C_AUTO_LIMIT", default=20000, cast=int)
+# Optional overrides; by default both are built from FRONTEND_URL.
+MPESA_B2C_RESULT_URL = config("MPESA_B2C_RESULT_URL", default="")
+MPESA_B2C_TIMEOUT_URL = config("MPESA_B2C_TIMEOUT_URL", default="")
 
 FLUTTERWAVE_PUBLIC_KEY = config("FLUTTERWAVE_PUBLIC_KEY", default="")
 FLUTTERWAVE_SECRET_KEY = config("FLUTTERWAVE_SECRET_KEY", default="")
