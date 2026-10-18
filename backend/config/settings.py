@@ -253,7 +253,8 @@ LATE_FINE_MAX_PERCENT = config("LATE_FINE_MAX_PERCENT", default=25, cast=int)
 REVISION_WINDOW_HOURS = config("REVISION_WINDOW_HOURS", default=72, cast=int)
 HUMANIZATION_PRICE_PER_PAGE = config("HUMANIZATION_PRICE_PER_PAGE", default=50, cast=int)
 HUMANIZATION_WORDS_PER_PAGE = config("HUMANIZATION_WORDS_PER_PAGE", default=250, cast=int)
-DOCUMENT_CHECK_PRICE = config("DOCUMENT_CHECK_PRICE", default=150, cast=int)
+# Flat price per document for the AI + similarity report bundle (KES).
+DOCUMENT_CHECK_PRICE = config("DOCUMENT_CHECK_PRICE", default=120, cast=int)
 
 AI_CONTENT_THRESHOLD = config("AI_CONTENT_THRESHOLD", default=20, cast=int)
 PLAGIARISM_THRESHOLD = config("PLAGIARISM_THRESHOLD", default=15, cast=int)

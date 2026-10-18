@@ -46,7 +46,7 @@ export default function AdminChecks() {
     <div className="space-y-6">
       <PageIntro
         title="Document check requests"
-        subtitle="Run the checks yourself, upload the reports, then deliver. KES 150 per report."
+        subtitle="Run the checks yourself, upload the reports, then deliver. KES 120 per document: upload both the AI and similarity reports, then deliver."
       />
 
       <Tabs tabs={TABS} value={status} onChange={setStatus} />

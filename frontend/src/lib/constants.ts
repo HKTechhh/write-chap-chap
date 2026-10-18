@@ -129,8 +129,9 @@ export const ORDER_TABS = [
 ]
 
 export const REPORT_TYPE_LABEL: Record<string, string> = {
-  ai_content: 'AI content detection',
+  ai_content: 'AI content report',
+  similarity_links: 'Similarity report',
+  // Legacy values from requests made before the two-report bundle.
   plagiarism: 'Plagiarism scan',
   turnitin: 'Turnitin report',
-  similarity_links: 'Similarity / source links',
 }

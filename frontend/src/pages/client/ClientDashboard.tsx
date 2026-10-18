@@ -195,7 +195,7 @@ export default function ClientDashboard() {
                 to="/check-my-paper"
                 icon={<FileSearch className="h-4 w-4" />}
                 title="Check a document"
-                body="KES 150 per report"
+                body="KES 120 · AI + similarity"
               />
               <Shortcut
                 to="/reviews"

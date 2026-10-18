@@ -134,7 +134,7 @@ export const notifications = {
 export const checks = {
   pricing: () =>
     api.get<{
-      price_per_report: number
+      price: number
       currency: string
       report_types: { value: string; label: string }[]
     }>('/api/check-requests/pricing/'),

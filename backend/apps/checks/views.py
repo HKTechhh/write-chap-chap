@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from apps.accounts.models import Notification, notify
 from apps.common.permissions import IsAdminRole
 
-from .models import CheckReport, CheckRequest
+from .models import BUNDLE_REPORT_TYPES, CheckReport, CheckRequest
 from .serializers import (
     CheckPricingSerializer,
     CheckReportSerializer,
@@ -51,8 +51,8 @@ class CheckRequestViewSet(viewsets.GenericViewSet):
             notify(
                 admin,
                 "New document check request",
-                f"{instance.requester_display} requested "
-                f"{len(instance.report_types)} report(s) — {instance.reference}.",
+                f"{instance.requester_display} requested an AI + similarity check "
+                f"— {instance.reference}.",
                 Notification.Kind.SYSTEM,
                 link="/admin/checks",
             )
@@ -106,9 +106,10 @@ class AdminCheckRequestViewSet(viewsets.ModelViewSet):
     def upload_report(self, request, pk=None):
         instance = self.get_object()
         report_type = request.data.get("report_type")
-        if not report_type:
+        if report_type not in BUNDLE_REPORT_TYPES:
             return Response(
-                {"detail": "report_type is required."}, status=status.HTTP_400_BAD_REQUEST
+                {"detail": f"report_type must be one of: {', '.join(BUNDLE_REPORT_TYPES)}."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         report, _ = CheckReport.objects.update_or_create(
@@ -122,16 +123,20 @@ class AdminCheckRequestViewSet(viewsets.ModelViewSet):
                 "processed_by": request.user,
             },
         )
-        instance.status = CheckRequest.Status.PROCESSED
-        instance.save(update_fields=["status", "updated_at"])
+        uploaded = set(instance.reports.values_list("report_type", flat=True))
+        if uploaded >= set(BUNDLE_REPORT_TYPES):
+            instance.status = CheckRequest.Status.PROCESSED
+            instance.save(update_fields=["status", "updated_at"])
         return Response(CheckReportSerializer(report).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
     def deliver(self, request, pk=None):
         instance = self.get_object()
-        if not instance.reports.exists():
+        uploaded = set(instance.reports.values_list("report_type", flat=True))
+        missing = [t for t in BUNDLE_REPORT_TYPES if t not in uploaded]
+        if missing:
             return Response(
-                {"detail": "Upload at least one report before delivering."},
+                {"detail": f"Upload both reports before delivering. Missing: {', '.join(missing)}."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         now = timezone.now()

@@ -343,7 +343,7 @@ function Screening() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/check-my-paper">
                 <Button variant="accent" icon={<FileSearch className="h-4 w-4" />}>
-                  Check a document — KES 150
+                  Check a document — KES 120
                 </Button>
               </Link>
               <Link to="/pricing">

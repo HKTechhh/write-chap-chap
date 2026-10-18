@@ -319,6 +319,6 @@ class Command(BaseCommand):
             document="check_requests/sample.txt",
             original_name="dissertation-chapter-3.docx",
             word_count=4200,
-            report_types=["ai_content", "plagiarism"],
+            report_types=["ai_content", "similarity_links"],
             notes="Need this before Friday's submission deadline please.",
         )

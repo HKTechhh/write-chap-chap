@@ -234,7 +234,7 @@ class FullLifecycleSmokeTest(TestCase):
         self.assertEqual(Decimal(created.data["budget"]), Decimal("100.00"))
         self.assertEqual(created.data["word_count"], 300)
 
-    def test_check_my_paper_is_public_and_priced_per_report(self):
+    def test_check_my_paper_is_public_and_priced_as_a_bundle(self):
         anonymous = APIClient()
         document = SimpleUploadedFile("paper.txt", b"hello world " * 100, content_type="text/plain")
 
@@ -242,14 +242,14 @@ class FullLifecycleSmokeTest(TestCase):
             "/api/check-requests/",
             {
                 "document": document,
-                "report_types": ["ai_content", "plagiarism"],
                 "contact_email": "visitor@example.com",
                 "contact_name": "Visitor",
             },
             format="multipart",
         )
         self.assertEqual(response.status_code, 201, response.data)
-        self.assertEqual(Decimal(response.data["total_price"]), Decimal("300.00"))
+        self.assertEqual(Decimal(response.data["total_price"]), Decimal("120.00"))
+        self.assertEqual(response.data["report_types"], ["ai_content", "similarity_links"])
         reference = response.data["reference"]
 
         tracked = anonymous.get(f"/api/check-requests/track/{reference}/")

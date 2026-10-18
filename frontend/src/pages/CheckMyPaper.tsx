@@ -2,6 +2,7 @@ import type * as React from 'react'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
+  Check,
   CheckCircle2,
   Clock,
   Download,
@@ -13,7 +14,7 @@ import {
 } from 'lucide-react'
 import { MarketingLayout } from '@/components/layout/MarketingLayout'
 import { Button } from '@/components/ui/Button'
-import { Checkbox, Input, Textarea } from '@/components/ui/Field'
+import { Input, Textarea } from '@/components/ui/Field'
 import { Alert } from '@/components/ui/Misc'
 import { Badge as Pill } from '@/components/ui/Badge'
 import { checks } from '@/api/endpoints'
@@ -33,18 +34,15 @@ export default function CheckMyPaper() {
   const toast = useToast()
   const [params] = useSearchParams()
 
-  const [pricing, setPricing] = useState<{ price_per_report: number; report_types: ReportType[] }>({
-    price_per_report: 150,
+  const [pricing, setPricing] = useState<{ price: number; report_types: ReportType[] }>({
+    price: 120,
     report_types: [
-      { value: 'ai_content', label: 'AI content detection' },
-      { value: 'plagiarism', label: 'Plagiarism scan' },
-      { value: 'turnitin', label: 'Turnitin report' },
-      { value: 'similarity_links', label: 'Similarity / source links' },
+      { value: 'ai_content', label: 'AI content report' },
+      { value: 'similarity_links', label: 'Similarity report' },
     ],
   })
 
   const [file, setFile] = useState<File | null>(null)
-  const [selected, setSelected] = useState<string[]>(['ai_content'])
   const [contact, setContact] = useState({
     contact_name: user?.display_name ?? '',
     contact_email: user?.email ?? '',
@@ -62,7 +60,7 @@ export default function CheckMyPaper() {
   useEffect(() => {
     checks
       .pricing()
-      .then((data) => setPricing({ price_per_report: data.price_per_report, report_types: data.report_types }))
+      .then((data) => setPricing({ price: data.price, report_types: data.report_types }))
       .catch(() => {
         /* the defaults above are fine if the API isn't reachable */
       })
@@ -74,25 +72,15 @@ export default function CheckMyPaper() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const total = selected.length * pricing.price_per_report
-
-  const toggle = (value: string) => {
-    setSelected((current) =>
-      current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
-    )
-  }
-
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError('')
 
     if (!file) return setError('Attach the document you want checked.')
-    if (selected.length === 0) return setError('Pick at least one report type.')
     if (!user && !contact.contact_email) return setError('We need an email to send the report to.')
 
     const form = new FormData()
     form.append('document', file)
-    selected.forEach((value) => form.append('report_types', value))
     form.append('contact_name', contact.contact_name)
     form.append('contact_email', contact.contact_email)
     form.append('contact_phone', contact.contact_phone)
@@ -132,7 +120,7 @@ export default function CheckMyPaper() {
           <div className="mx-auto max-w-2xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-teal-300">
               <FileSearch className="h-3.5 w-3.5" />
-              KES {pricing.price_per_report} per report · any document size
+              KES {pricing.price} for both reports · any document size
             </span>
             <h1 className="mt-5 text-balance text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
               Check my paper
@@ -259,26 +247,25 @@ export default function CheckMyPaper() {
                     </label>
                   </div>
 
-                  {/* Report types */}
+                  {/* What's included: always both reports, one price */}
                   <div className="mt-6">
                     <p className="label">
-                      Reports needed{' '}
+                      Included{' '}
                       <span className="font-normal text-ink-400">
-                        · KES {pricing.price_per_report} each
+                        · both reports, KES {pricing.price} per document
                       </span>
                     </p>
-                    <div className="grid gap-2.5 sm:grid-cols-2">
+                    <ul className="grid gap-2.5 sm:grid-cols-2">
                       {pricing.report_types.map((type) => (
-                        <Checkbox
+                        <li
                           key={type.value}
-                          name={type.value}
-                          label={type.label}
-                          description={`KES ${pricing.price_per_report}`}
-                          checked={selected.includes(type.value)}
-                          onChange={() => toggle(type.value)}
-                        />
+                          className="flex items-center gap-2.5 rounded-xl border border-ink-200 bg-surface px-4 py-3 text-sm font-medium text-ink-800"
+                        >
+                          <Check className="h-4 w-4 text-emerald-600" />
+                          {type.label}
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
 
                   {/* Contact */}
@@ -328,10 +315,9 @@ export default function CheckMyPaper() {
                   <div className="mt-7 flex items-center justify-between rounded-2xl theme-fixed bg-ink-900 px-5 py-4 text-white">
                     <div>
                       <p className="text-xs text-ink-400">
-                        {selected.length} report{selected.length === 1 ? '' : 's'} × KES{' '}
-                        {pricing.price_per_report}
+                        AI report + similarity report
                       </p>
-                      <p className="text-2xl font-bold">{formatMoney(total)}</p>
+                      <p className="text-2xl font-bold">{formatMoney(pricing.price)}</p>
                     </div>
                     <Button type="submit" variant="accent" size="lg" loading={submitting}>
                       Submit request

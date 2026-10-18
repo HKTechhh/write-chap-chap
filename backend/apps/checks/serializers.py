@@ -1,7 +1,7 @@
 from django.conf import settings
 from rest_framework import serializers
 
-from .models import CheckReport, CheckRequest, ReportType
+from .models import BUNDLE_REPORT_TYPES, CheckReport, CheckRequest, ReportType
 
 
 class CheckReportSerializer(serializers.ModelSerializer):
@@ -30,8 +30,9 @@ class CheckReportSerializer(serializers.ModelSerializer):
 
 
 class CheckRequestCreateSerializer(serializers.ModelSerializer):
+    # Optional and informational: a check is always the AI + similarity bundle.
     report_types = serializers.ListField(
-        child=serializers.ChoiceField(choices=ReportType.choices), allow_empty=False
+        child=serializers.CharField(), required=False, write_only=True
     )
 
     class Meta:
@@ -58,8 +59,12 @@ class CheckRequestCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"contact_email": "We need an email address to send your report to."}
             )
-        if len(set(attrs["report_types"])) != len(attrs["report_types"]):
-            raise serializers.ValidationError({"report_types": "Duplicate report types selected."})
+        requested = attrs.pop("report_types", None)
+        if requested is not None and sorted(requested) != sorted(BUNDLE_REPORT_TYPES):
+            raise serializers.ValidationError(
+                {"report_types": "Document checks come as one bundle: AI report and similarity report together."}
+            )
+        attrs["report_types"] = list(BUNDLE_REPORT_TYPES)
         return attrs
 
     def create(self, validated_data):
@@ -78,7 +83,7 @@ class CheckRequestCreateSerializer(serializers.ModelSerializer):
         if document:
             instance.word_count = count_words_in_file(document)
 
-        instance.total_price = CheckRequest.calculate_price(validated_data["report_types"])
+        instance.total_price = CheckRequest.calculate_price()
         instance.save()
         return instance
 
@@ -124,9 +129,10 @@ class CheckPricingSerializer(serializers.Serializer):
     @staticmethod
     def payload():
         return {
-            "price_per_report": settings.DOCUMENT_CHECK_PRICE,
+            "price": settings.DOCUMENT_CHECK_PRICE,
             "currency": "KES",
+            # Always both, never selectable: shown to the visitor as what is included.
             "report_types": [
-                {"value": value, "label": label} for value, label in ReportType.choices
+                {"value": value, "label": ReportType(value).label} for value in BUNDLE_REPORT_TYPES
             ],
         }
