@@ -87,10 +87,10 @@ class MpesaGateway:
             "BusinessShortCode": settings.MPESA_SHORTCODE,
             "Password": password,
             "Timestamp": timestamp,
-            "TransactionType": "CustomerPayBillOnline",
+            "TransactionType": settings.MPESA_TRANSACTION_TYPE,
             "Amount": int(round(float(amount))),
             "PartyA": self.normalize_phone(phone),
-            "PartyB": settings.MPESA_SHORTCODE,
+            "PartyB": settings.MPESA_TILL_NUMBER or settings.MPESA_SHORTCODE,
             "PhoneNumber": self.normalize_phone(phone),
             "CallBackURL": settings.MPESA_CALLBACK_URL,
             "AccountReference": "Penspan",  # shown as "Account no." on the phone; the real reference rides in TransactionDesc
