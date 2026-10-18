@@ -1,0 +1,46 @@
+{% comment %}
+Base layout for every PenSpan email. Extend it and fill the `content` block:
+
+    {% extends "emails/base.html" %}
+    {% block preheader %}Your order has been funded{% endblock %}
+    {% block content %}<p>Hi {{ user.first_name }}, ...</p>{% endblock %}
+
+The logo is a PNG on purpose: Gmail and Outlook do not render SVG.
+{% endcomment %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}PenSpan{% endblock %}</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f0fdfa;font-family:Arial,Helvetica,sans-serif;color:#134e4a;">
+    <span style="display:none;max-height:0;overflow:hidden;opacity:0;">{% block preheader %}{% endblock %}</span>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdfa;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:12px;border-top:4px solid #F59E0B;">
+            <tr>
+              <td style="padding:24px 32px 8px;">
+                <a href="{{ site_url|default:'https://penspan.com' }}">
+                  <img src="{{ site_url|default:'https://penspan.com' }}/brand/logo-email.png" alt="PenSpan" width="160" style="display:block;border:0;height:auto;" />
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 28px;font-size:15px;line-height:1.6;">
+                {% block content %}{% endblock %}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px;border-top:1px solid #ccfbf1;font-size:12px;color:#5f7a77;">
+                PenSpan &middot; Freelance writing, done properly.<br />
+                Keep all communication and payment on PenSpan so escrow protects you.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
