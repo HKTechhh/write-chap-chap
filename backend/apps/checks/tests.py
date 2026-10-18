@@ -10,7 +10,11 @@ from apps.accounts.models import Role, User
 from .models import CheckRequest
 
 
-@override_settings(DEBUG=True)
+# Keep tests off the real Daraja sandbox even when backend/.env holds live-looking keys.
+NO_DARAJA = {"MPESA_CONSUMER_KEY": "", "MPESA_CONSUMER_SECRET": "", "MPESA_SHORTCODE": "", "MPESA_PASSKEY": ""}
+
+
+@override_settings(DEBUG=True, **NO_DARAJA)
 class DocumentCheckBundleTests(APITestCase):
     """A Document Check is always the AI + similarity bundle for one flat price."""
 
@@ -82,7 +86,7 @@ class DocumentCheckBundleTests(APITestCase):
         self.assertEqual(response.status_code, 400)
 
 
-@override_settings(DEBUG=True)
+@override_settings(DEBUG=True, **NO_DARAJA)
 class DocumentCheckDeliverablesTests(APITestCase):
     """One document in, two documents out: an AI report and a plagiarism/similarity report."""
 
@@ -173,7 +177,7 @@ class DocumentCheckPaymentTests(APITestCase):
             self.assertEqual(response.status_code, 400, phone)
         self.assertEqual(CheckRequest.objects.count(), 0)
 
-    @override_settings(DEBUG=True)
+    @override_settings(DEBUG=True, **NO_DARAJA)
     def test_simulated_payment_releases_the_request_to_the_admin(self):
         response = self._submit(contact_phone="+254 712 345 678")
         self.assertEqual(response.status_code, 201, response.data)
@@ -184,7 +188,7 @@ class DocumentCheckPaymentTests(APITestCase):
         self.assertEqual(check.status, "pending")
         self.assertEqual(len(self._queue()), 1)
 
-    @override_settings(DEBUG=False)
+    @override_settings(DEBUG=False, **NO_DARAJA)
     def test_production_without_daraja_refuses_rather_than_giving_it_away(self):
         response = self._submit()
         self.assertEqual(response.status_code, 201)
@@ -236,7 +240,7 @@ class DocumentCheckPaymentTests(APITestCase):
         self.assertIn("cancelled", tracked["payment_message"])
         self.assertEqual(self._queue(), [])
 
-        with override_settings(DEBUG=True):
+        with override_settings(DEBUG=True, **NO_DARAJA):
             retry = self.anon.post(f"/api/check-requests/pay/{check.reference}/", {"phone": "0722000000"}, format="json")
         self.assertEqual(retry.status_code, 200, retry.data)
         check.refresh_from_db()

@@ -18,6 +18,8 @@ from apps.payments.models import Wallet
 
 
 @override_settings(PLATFORM_FEE_PERCENT=12, CELERY_TASK_ALWAYS_EAGER=True)
+# Simulated M-Pesa, and never the real sandbox, even when backend/.env holds Daraja keys.
+@override_settings(DEBUG=True, MPESA_CONSUMER_KEY="", MPESA_CONSUMER_SECRET="", MPESA_SHORTCODE="", MPESA_PASSKEY="")
 class FullLifecycleSmokeTest(TestCase):
     def setUp(self):
         self.api = APIClient()
@@ -233,7 +235,6 @@ class FullLifecycleSmokeTest(TestCase):
         self.assertEqual(Decimal(created.data["budget"]), Decimal("100.00"))
         self.assertEqual(created.data["word_count"], 300)
 
-    @override_settings(DEBUG=True)  # simulated M-Pesa prompt settles at once
     def test_check_my_paper_is_public_and_priced_as_a_bundle(self):
         anonymous = APIClient()
         document = SimpleUploadedFile("paper.txt", b"hello world " * 100, content_type="text/plain")
