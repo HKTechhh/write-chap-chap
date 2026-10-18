@@ -37,8 +37,8 @@ export default function CheckMyPaper() {
   const [pricing, setPricing] = useState<{ price: number; report_types: ReportType[] }>({
     price: 120,
     report_types: [
-      { value: 'ai_content', label: 'AI content report' },
-      { value: 'similarity_links', label: 'Similarity report' },
+      { value: 'ai_content', label: 'AI report' },
+      { value: 'similarity_links', label: 'Plagiarism / similarity report' },
     ],
   })
 
@@ -164,8 +164,8 @@ export default function CheckMyPaper() {
                     <dl className="mt-6 space-y-3 text-sm">
                       <Row label="Document" value={result.original_name || '—'} />
                       <Row
-                        label="Reports requested"
-                        value={result.report_types.length.toString()}
+                        label="You will receive"
+                        value="2 documents: AI report + plagiarism / similarity report"
                       />
                       <Row label="Word count" value={result.word_count?.toLocaleString() ?? 'Not parsed'} />
                       <Row
@@ -252,7 +252,7 @@ export default function CheckMyPaper() {
                     <p className="label">
                       Included{' '}
                       <span className="font-normal text-ink-400">
-                        · both reports, KES {pricing.price} per document
+                        · you get both reports back, KES {pricing.price} per document
                       </span>
                     </p>
                     <ul className="grid gap-2.5 sm:grid-cols-2">
@@ -315,7 +315,7 @@ export default function CheckMyPaper() {
                   <div className="mt-7 flex items-center justify-between rounded-2xl theme-fixed bg-ink-900 px-5 py-4 text-white">
                     <div>
                       <p className="text-xs text-ink-400">
-                        AI report + similarity report
+                        AI report + plagiarism / similarity report
                       </p>
                       <p className="text-2xl font-bold">{formatMoney(pricing.price)}</p>
                     </div>
@@ -376,41 +376,37 @@ export default function CheckMyPaper() {
                       Submitted {formatDateTime(tracked.created_at)}
                     </p>
 
-                    {tracked.reports.length > 0 ? (
-                      <div className="mt-4 space-y-2">
-                        {tracked.reports.map((report) => (
-                          <div
-                            key={report.id}
-                            className="flex items-center justify-between gap-3 rounded-lg bg-surface p-3 ring-1 ring-ink-200"
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-ink-800">
-                                {report.report_type_display}
+                    <div className="mt-4 space-y-2">
+                      {tracked.deliverables.map((slot) => (
+                        <div
+                          key={slot.report_type}
+                          className="flex items-center justify-between gap-3 rounded-lg bg-surface p-3 ring-1 ring-ink-200"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-ink-800">{slot.label}</p>
+                            {slot.state === 'delivered' && slot.report?.score != null ? (
+                              <p className="text-xs text-ink-500">Score: {slot.report.score}%</p>
+                            ) : (
+                              <p className="flex items-center gap-1.5 text-xs text-ink-500">
+                                {slot.state === 'delivered' ? null : <Clock className="h-3 w-3" />}
+                                {slot.state === 'delivered' ? 'Ready' : 'Not ready yet'}
                               </p>
-                              {report.score !== null && (
-                                <p className="text-xs text-ink-500">Score: {report.score}%</p>
-                              )}
-                            </div>
-                            {report.delivered_at && (report.file || report.report_url) && (
-                              <a
-                                href={report.report_url || mediaUrl(report.file)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="shrink-0 rounded-lg bg-brand-50 p-2 text-brand-600 hover:bg-brand-100"
-                                aria-label="Download report"
-                              >
-                                <Download className="h-4 w-4" />
-                              </a>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="mt-4 flex items-center gap-2 text-xs text-ink-500">
-                        <Clock className="h-3.5 w-3.5" />
-                        Reports not ready yet.
-                      </p>
-                    )}
+                          {slot.state === 'delivered' && (slot.report?.file || slot.report?.report_url) && (
+                            <a
+                              href={slot.report.report_url || mediaUrl(slot.report.file)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0 rounded-lg bg-brand-50 p-2 text-brand-600 hover:bg-brand-100"
+                              aria-label={`Download ${slot.label}`}
+                            >
+                              <Download className="h-4 w-4" />
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

@@ -7,7 +7,7 @@ import { useToast } from '@/context/ToastContext'
 import { REPORT_TYPE_LABEL } from '@/lib/constants'
 import { formatDateTime, formatMoney } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
-import { Input, Select, Textarea } from '@/components/ui/Field'
+import { Input, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Modal'
 import { EmptyState, Skeleton, Tabs } from '@/components/ui/Misc'
 import { Badge } from '@/components/ui/Badge'
@@ -25,7 +25,7 @@ const TABS = [
 export default function AdminChecks() {
   const toast = useToast()
   const [status, setStatus] = useState('pending')
-  const [target, setTarget] = useState<CheckRequest | null>(null)
+  const [target, setTarget] = useState<{ request: CheckRequest; reportType: string } | null>(null)
 
   const { data, loading, reload } = useAsync(
     () => admin.checkRequests({ status: status || undefined, page_size: 50 }),
@@ -93,52 +93,60 @@ export default function AdminChecks() {
                     {formatDateTime(request.created_at)}
                   </p>
 
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {request.report_types.map((type) => (
-                      <span
-                        key={type}
-                        className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset ring-brand-200"
-                      >
-                        {REPORT_TYPE_LABEL[type] ?? type}
-                      </span>
-                    ))}
-                  </div>
-
                   {request.notes && (
                     <p className="mt-3 rounded-xl bg-ink-50 p-3 text-sm text-ink-700">
                       {request.notes}
                     </p>
                   )}
 
-                  {request.reports.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-xs font-bold uppercase tracking-wide text-ink-500">
-                        Uploaded reports
-                      </p>
-                      {request.reports.map((report) => (
-                        <div
-                          key={report.id}
-                          className="flex items-center gap-3 rounded-lg border border-ink-200 px-3 py-2"
+                  {/* One document in, two documents out */}
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-wide text-ink-500">
+                      Reports to deliver
+                    </p>
+                    {request.deliverables.map((slot) => (
+                      <div
+                        key={slot.report_type}
+                        className="flex items-center gap-3 rounded-lg border border-ink-200 px-3 py-2"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-sm text-ink-800">
+                          {slot.label}
+                          {slot.report?.score != null && ` — ${slot.report.score}%`}
+                        </span>
+                        <Badge
+                          tone={
+                            slot.state === 'delivered'
+                              ? 'success'
+                              : slot.state === 'uploaded'
+                                ? 'brand'
+                                : 'warning'
+                          }
                         >
-                          <span className="min-w-0 flex-1 truncate text-sm text-ink-800">
-                            {report.report_type_display}
-                            {report.score !== null && ` — ${report.score}%`}
-                          </span>
-                          {report.delivered_at && <Badge tone="success">delivered</Badge>}
-                          {(report.file || report.report_url) && (
-                            <a
-                              href={report.report_url || mediaUrl(report.file)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="rounded p-1.5 text-brand-600 hover:bg-brand-50"
-                            >
-                              <Download className="h-4 w-4" />
-                            </a>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                          {slot.state === 'waiting' ? 'to upload' : slot.state}
+                        </Badge>
+                        {slot.report && (slot.report.file || slot.report.report_url) && (
+                          <a
+                            href={slot.report.report_url || mediaUrl(slot.report.file)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded p-1.5 text-brand-600 hover:bg-brand-50"
+                          >
+                            <Download className="h-4 w-4" />
+                          </a>
+                        )}
+                        {request.status !== 'delivered' && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            icon={<Upload className="h-3.5 w-3.5" />}
+                            onClick={() => setTarget({ request, reportType: slot.report_type })}
+                          >
+                            {slot.report ? 'Replace' : 'Upload'}
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex shrink-0 flex-col gap-2">
@@ -159,17 +167,16 @@ export default function AdminChecks() {
                       Start
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    icon={<Upload className="h-3.5 w-3.5" />}
-                    onClick={() => setTarget(request)}
-                  >
-                    Upload report
-                  </Button>
-                  {request.reports.length > 0 && request.status !== 'delivered' && (
+                  {request.status !== 'delivered' && (
                     <Button
                       size="sm"
                       variant="success"
+                      disabled={request.deliverables.some((slot) => !slot.report)}
+                      title={
+                        request.deliverables.some((slot) => !slot.report)
+                          ? 'Upload both reports first'
+                          : undefined
+                      }
                       icon={<Send className="h-3.5 w-3.5" />}
                       onClick={() => act(() => admin.deliverCheck(request.id), 'Delivered to requester')}
                     >
@@ -201,7 +208,8 @@ export default function AdminChecks() {
       )}
 
       <UploadModal
-        request={target}
+        request={target?.request ?? null}
+        reportType={target?.reportType ?? ''}
         onClose={() => setTarget(null)}
         onDone={() => {
           toast.success('Report uploaded')
@@ -215,15 +223,16 @@ export default function AdminChecks() {
 
 function UploadModal({
   request,
+  reportType,
   onClose,
   onDone,
 }: {
   request: CheckRequest | null
+  reportType: string
   onClose: () => void
   onDone: () => void
 }) {
   const toast = useToast()
-  const [reportType, setReportType] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [url, setUrl] = useState('')
   const [score, setScore] = useState('')
@@ -232,8 +241,7 @@ function UploadModal({
 
   const submit = async () => {
     if (!request) return
-    const type = reportType || request.report_types[0]
-    if (!type) return toast.error('Pick a report type.')
+    const type = reportType
     if (!file && !url) return toast.error('Attach a file or paste a report URL.')
 
     setBusy(true)
@@ -261,7 +269,7 @@ function UploadModal({
     <Modal
       open={Boolean(request)}
       onClose={onClose}
-      title="Upload a report"
+      title={`Upload: ${REPORT_TYPE_LABEL[reportType] ?? reportType}`}
       description={request?.reference}
       footer={
         <>
@@ -276,17 +284,6 @@ function UploadModal({
     >
       {request && (
         <div className="space-y-5">
-          <Select
-            name="report_type"
-            label="Report type"
-            options={request.report_types.map((type) => ({
-              value: type,
-              label: REPORT_TYPE_LABEL[type] ?? type,
-            }))}
-            value={reportType || request.report_types[0]}
-            onChange={(event) => setReportType(event.target.value)}
-          />
-
           <div>
             <p className="label">Report file</p>
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-ink-300 bg-ink-50 p-6 text-center hover:border-brand-400">

@@ -14,6 +14,7 @@ from .serializers import (
     CheckPricingSerializer,
     CheckReportSerializer,
     CheckRequestCreateSerializer,
+    CheckRequestPublicSerializer,
     CheckRequestSerializer,
 )
 
@@ -58,7 +59,7 @@ class CheckRequestViewSet(viewsets.GenericViewSet):
             )
 
         return Response(
-            CheckRequestSerializer(instance).data, status=status.HTTP_201_CREATED
+            CheckRequestPublicSerializer(instance).data, status=status.HTTP_201_CREATED
         )
 
     @action(detail=False, methods=["get"], url_path="track/(?P<reference>[^/.]+)")
@@ -69,14 +70,14 @@ class CheckRequestViewSet(viewsets.GenericViewSet):
                 {"detail": "No request found with that reference."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        return Response(CheckRequestSerializer(instance).data)
+        return Response(CheckRequestPublicSerializer(instance).data)
 
     @action(detail=False, methods=["get"], url_path="mine")
     def mine(self, request):
         if not request.user.is_authenticated:
             return Response({"detail": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
         qs = CheckRequest.objects.filter(requested_by=request.user).prefetch_related("reports")
-        return Response(CheckRequestSerializer(qs, many=True).data)
+        return Response(CheckRequestPublicSerializer(qs, many=True).data)
 
 
 class AdminCheckRequestViewSet(viewsets.ModelViewSet):

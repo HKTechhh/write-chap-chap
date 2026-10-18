@@ -132,8 +132,10 @@ price server-side — writers compete on delivery time and reputation instead.
 
 ### Document Check service
 Public "Check My Paper" form, **KES 120 flat per document**, routed only to the admin dashboard.
-Every check is the same bundle: an **AI content report and a similarity report together**. A
-single report cannot be ordered, and a check can only be delivered once both are uploaded.
+One document goes in and two documents come out: an **AI report** and a **plagiarism /
+similarity report**. A single report cannot be ordered. The admin sees both as slots to fill, a
+check can only be delivered once both are uploaded, and the requester sees neither (nor their
+scores) until delivery.
 Anonymous visitors can submit and track by reference. Writers have no access path to it at all
 — verified by a test — because letting them pre-test drafts against the same detector would
 defeat the screening.
@@ -198,7 +200,7 @@ defaults are baked in — nothing below is required to run locally.
 | `LATE_FINE_PERCENT_PER_DAY` / `LATE_FINE_MAX_PERCENT` | `5` / `25` | Late-delivery fines |
 | `REVISION_WINDOW_HOURS` | `72` | Auto-approve window |
 | `HUMANIZATION_PRICE_PER_PAGE` / `_WORDS_PER_PAGE` | `50` / `250` | Humanization pricing |
-| `DOCUMENT_CHECK_PRICE` | `120` | Per document (AI + similarity bundle) |
+| `DOCUMENT_CHECK_PRICE` | `120` | Per document (AI report + plagiarism/similarity report) |
 | `AI_CONTENT_THRESHOLD` / `PLAGIARISM_THRESHOLD` | `20` / `15` | Screening flag thresholds |
 | `CONTACT_LEAK_STRIKE_LIMIT` | `3` | Blocked attempts before a formal strike |
 | `GPTZERO_API_KEY` | — | Enables real screening |

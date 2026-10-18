@@ -128,7 +128,7 @@ Deliberately kept out of writers' hands — letting writers self-check drafts ag
 
 1. Anyone (client or even a non-marketplace visitor) uploads a document via a public "Check My Paper" request form
 2. Request lands only in your Admin dashboard — writers never see this tool
-3. You run both checks yourself (an AI content report and a similarity report) and upload both reports to the request. A check can only be delivered once both are uploaded
+3. You run both checks yourself (an AI report and a plagiarism / similarity report) and upload both reports to the request. A check can only be delivered once both are uploaded
 4. Requester is notified and can view/download the delivered report(s)
 5. Pricing: **KES 120 flat per document**, regardless of document size. Every check is the AI + similarity bundle; a single report cannot be ordered
 
@@ -240,7 +240,7 @@ Same underlying component library and page patterns for both (so it's one codeba
 | **Featured/boosted bids** | Writers pay to appear higher in bid lists or "available writers" | Optional add-on revenue |
 | **Fines** | Late delivery / quality failures | Split: 50% refunded to client, 50% platform revenue |
 | **GPTZero scan fee** | Small per-submission charge, or absorbed into service fee | Confirm current GPTZero pricing before deciding which |
-| **Document Check service** | KES 120 flat per document (AI content report + similarity report, always both) | Admin-only — you run and deliver these personally, high margin (your time + one API call vs. flat fee) |
+| **Document Check service** | KES 120 flat per document (AI report + plagiarism / similarity report, always both) | Admin-only — you run and deliver these personally, high margin (your time + one API call vs. flat fee) |
 | **AI Humanization service** | KES 50 per page (250 words = 1 page, rounded up), fixed price — flows through normal bidding/escrow, standard platform fee still applies on release | Self-serve for everyone; scales with writer capacity instead of your own time |
 
 ---

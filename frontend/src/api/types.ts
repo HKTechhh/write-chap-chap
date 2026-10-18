@@ -371,6 +371,14 @@ export interface CheckReport {
   created_at: string
 }
 
+export interface CheckDeliverable {
+  report_type: string
+  label: string
+  /** waiting = not uploaded (or not released to the client yet), uploaded = admin only, delivered = client can download */
+  state: 'waiting' | 'uploaded' | 'delivered'
+  report: CheckReport | null
+}
+
 export interface CheckRequest {
   id: number
   reference: string
@@ -393,6 +401,7 @@ export interface CheckRequest {
   delivered_at: string | null
   admin_notes: string
   reports: CheckReport[]
+  deliverables: CheckDeliverable[]
   created_at: string
 }
 

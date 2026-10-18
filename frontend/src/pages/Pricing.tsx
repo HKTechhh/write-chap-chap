@@ -96,9 +96,9 @@ export default function Pricing() {
               unit="per document, any size"
               body="Upload a document and get both reports back: AI content and similarity. We run the checks and send the results to you — no marketplace account required."
               points={[
-                'AI content report',
-                'Similarity report',
-                'Both reports on every check, one flat price',
+                'AI report',
+                'Plagiarism / similarity report',
+                'One document in, both reports back, one flat price',
               ]}
               cta={
                 <Link to="/check-my-paper">

@@ -8,8 +8,8 @@ from apps.common.models import TimeStampedModel
 
 
 class ReportType(models.TextChoices):
-    AI_CONTENT = "ai_content", "AI content report"
-    SIMILARITY_LINKS = "similarity_links", "Similarity report"
+    AI_CONTENT = "ai_content", "AI report"
+    SIMILARITY_LINKS = "similarity_links", "Plagiarism / similarity report"
 
 
 # A Document Check is always both reports together, for one flat price.

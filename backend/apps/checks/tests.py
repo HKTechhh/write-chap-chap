@@ -77,3 +77,68 @@ class DocumentCheckBundleTests(APITestCase):
             format="multipart",
         )
         self.assertEqual(response.status_code, 400)
+
+
+class DocumentCheckDeliverablesTests(APITestCase):
+    """One document in, two documents out: an AI report and a plagiarism/similarity report."""
+
+    def setUp(self):
+        self.anon = APIClient()
+        self.admin_user = User.objects.create_user(
+            username="boss2", password="Passw0rd!23", role=Role.ADMIN, is_staff=True
+        )
+        self.admin = APIClient()
+        self.admin.force_authenticate(self.admin_user)
+        document = SimpleUploadedFile("paper.txt", b"hello world " * 50, content_type="text/plain")
+        created = self.anon.post(
+            "/api/check-requests/",
+            {"document": document, "contact_email": "v@example.com"},
+            format="multipart",
+        )
+        self.pk, self.reference = created.data["id"], created.data["reference"]
+
+    def _upload(self, report_type):
+        return self.admin.post(
+            f"/api/admin/check-requests/{self.pk}/reports/",
+            {"report_type": report_type, "score": "10", "report_url": "https://example.com/r"},
+            format="multipart",
+        )
+
+    def _track(self):
+        return self.anon.get(f"/api/check-requests/track/{self.reference}/").data
+
+    def test_the_client_is_promised_two_named_deliverables(self):
+        slots = self._track()["deliverables"]
+        self.assertEqual([s["report_type"] for s in slots], ["ai_content", "similarity_links"])
+        self.assertEqual([s["label"] for s in slots], ["AI report", "Plagiarism / similarity report"])
+        self.assertEqual({s["state"] for s in slots}, {"waiting"})
+
+    def test_undelivered_reports_are_hidden_from_the_client(self):
+        self._upload("ai_content")
+        self._upload("similarity_links")
+
+        tracked = self._track()
+        self.assertEqual(tracked["reports"], [])
+        self.assertEqual({s["state"] for s in tracked["deliverables"]}, {"waiting"})
+        self.assertTrue(all(s["report"] is None for s in tracked["deliverables"]))
+
+        # The admin still sees both as uploaded.
+        admin_view = self.admin.get(f"/api/admin/check-requests/{self.pk}/").data
+        self.assertEqual({s["state"] for s in admin_view["deliverables"]}, {"uploaded"})
+
+    def test_client_receives_both_documents_after_delivery(self):
+        self._upload("ai_content")
+        self._upload("similarity_links")
+        self.assertEqual(self.admin.post(f"/api/admin/check-requests/{self.pk}/deliver/").status_code, 200)
+
+        tracked = self._track()
+        self.assertEqual(len(tracked["reports"]), 2)
+        self.assertEqual({s["state"] for s in tracked["deliverables"]}, {"delivered"})
+        self.assertTrue(all(s["report"] for s in tracked["deliverables"]))
+
+    def test_one_report_uploaded_shows_progress_to_admin_only(self):
+        self._upload("ai_content")
+        admin_view = self.admin.get(f"/api/admin/check-requests/{self.pk}/").data
+        states = {s["report_type"]: s["state"] for s in admin_view["deliverables"]}
+        self.assertEqual(states, {"ai_content": "uploaded", "similarity_links": "waiting"})
+        self.assertEqual(self.admin.post(f"/api/admin/check-requests/{self.pk}/deliver/").status_code, 400)
