@@ -1,4 +1,4 @@
-"""Django settings for the Write Chap Chap platform."""
+"""Django settings for the PenSpan platform."""
 from datetime import timedelta
 from pathlib import Path
 
@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY", default="dev-only-insecure-key-change-in-production")
 DEBUG = config("DEBUG", default=True, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,penspan.com,www.penspan.com", cast=Csv())
 
 def _as_origin(value):
     """Managed hosts hand out bare `host:port`; CSRF/CORS need a scheme."""
@@ -196,7 +196,7 @@ SIMPLE_JWT = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Write Chap Chap API",
+    "TITLE": "PenSpan API",
     "DESCRIPTION": "Freelance writing marketplace with escrow, quality enforcement and AI screening.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
@@ -207,7 +207,7 @@ SPECTACULAR_SETTINGS = {
 # declared in render.yaml never reached the running service, leaving the API
 # rejecting every browser request from its own frontend. An env var still
 # overrides; this is the floor, not the ceiling. Update if the site is renamed.
-DEPLOYED_FRONTEND_ORIGIN = "https://wcc-web.onrender.com"
+DEPLOYED_FRONTEND_ORIGIN = "https://penspan.com"
 
 CORS_ALLOWED_ORIGINS = [
     origin
@@ -222,12 +222,13 @@ CORS_ALLOWED_ORIGINS = [
     if origin
 ]
 
-for _origin in (FRONTEND_URL, DEPLOYED_FRONTEND_ORIGIN):
+for _origin in (FRONTEND_URL, DEPLOYED_FRONTEND_ORIGIN, "https://www.penspan.com"):
     if _origin and _origin not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(_origin)
 
-if DEPLOYED_FRONTEND_ORIGIN not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append(DEPLOYED_FRONTEND_ORIGIN)
+for _origin in (DEPLOYED_FRONTEND_ORIGIN, "https://www.penspan.com"):
+    if _origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_origin)
 
 CORS_ALLOW_CREDENTIALS = True
 

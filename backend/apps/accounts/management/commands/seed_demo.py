@@ -110,7 +110,7 @@ class Command(BaseCommand):
         admin, created = User.objects.get_or_create(
             username="admin",
             defaults={
-                "email": "admin@writechapchap.co.ke",
+                "email": "admin@penspan.com",
                 "role": Role.ADMIN,
                 "is_staff": True,
                 "is_superuser": True,

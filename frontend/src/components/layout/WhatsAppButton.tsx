@@ -7,7 +7,7 @@ import { WHATSAPP_NUMBER } from '@/lib/constants'
  */
 export function WhatsAppButton() {
   const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-    "Hi Write Chap Chap, I need help with…",
+    "Hi PenSpan, I need help with…",
   )}`
 
   return (

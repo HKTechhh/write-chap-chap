@@ -70,7 +70,7 @@ class CheckRequest(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.reference:
-            self.reference = f"WCC-{uuid.uuid4().hex[:8].upper()}"
+            self.reference = f"PSP-{uuid.uuid4().hex[:8].upper()}"
         if not self.total_price:
             self.total_price = self.calculate_price(self.report_types)
         super().save(*args, **kwargs)

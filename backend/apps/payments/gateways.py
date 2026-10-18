@@ -64,7 +64,7 @@ class MpesaGateway:
             return "254" + digits
         return digits
 
-    def stk_push(self, *, phone, amount, reference, description="Write Chap Chap"):
+    def stk_push(self, *, phone, amount, reference, description="PenSpan"):
         """Trigger an STK push. Returns a provider payload dict."""
         if not self.is_configured:
             return self._simulate(phone, amount, reference)
@@ -147,7 +147,7 @@ class FlutterwaveGateway:
             "redirect_url": f"{settings.FRONTEND_URL}/wallet",
             "customer": {"email": email, "name": name},
             "customizations": {
-                "title": "Write Chap Chap",
+                "title": "PenSpan",
                 "description": "Wallet top-up",
             },
         }

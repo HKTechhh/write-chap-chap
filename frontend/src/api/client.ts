@@ -16,7 +16,7 @@
  * production build from silently shipping a frontend that cannot reach its
  * own API. Change it if the API service is renamed.
  */
-const DEPLOYED_API_ORIGIN = 'https://wcc-api-5mhu.onrender.com'
+const DEPLOYED_API_ORIGIN = 'https://penspan.com'
 
 function isLocalHost(): boolean {
   return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname)
@@ -58,13 +58,13 @@ const BASE_URL = resolveBaseUrl(import.meta.env.VITE_API_BASE_URL)
 // a network error and the app looks healthy while doing nothing.
 if (!BASE_URL && !isLocalHost()) {
   console.error(
-    '[Write Chap Chap] No API base URL resolved. Every API call will return ' +
+    '[PenSpan] No API base URL resolved. Every API call will return ' +
       'the SPA index.html instead of JSON.',
   )
 }
 
-const ACCESS_KEY = 'wcc.access'
-const REFRESH_KEY = 'wcc.refresh'
+const ACCESS_KEY = 'penspan.access'
+const REFRESH_KEY = 'penspan.refresh'
 
 export const tokens = {
   get access() {
@@ -181,7 +181,7 @@ export async function request<T = any>(path: string, options: RequestOptions = {
       const refreshed = await refreshAccessToken()
       if (refreshed) return send(true)
       tokens.clear()
-      window.dispatchEvent(new CustomEvent('wcc:session-expired'))
+      window.dispatchEvent(new CustomEvent('penspan:session-expired'))
     }
 
     if (response.status === 204) return undefined as T

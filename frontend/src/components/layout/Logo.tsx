@@ -25,7 +25,7 @@ export function Logo({
               variant === 'light' ? 'text-white' : 'text-ink-900',
             )}
           >
-            Write Chap Chap
+            PenSpan
           </span>
           <span
             className={cn(

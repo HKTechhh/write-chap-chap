@@ -1,12 +1,12 @@
-# Write Chap Chap
+# PenSpan
 
 A freelance writing marketplace with escrow, quality enforcement, AI/plagiarism screening, and
 an off-platform contact guard.
 
-Built to the spec in [`WriteChapChap_Complete_Build_Plan.md`](./WriteChapChap_Complete_Build_Plan.md).
+Built to the spec in [`PenSpan_Complete_Build_Plan.md`](./PenSpan_Complete_Build_Plan.md).
 
 ```
-Write Chap Chap/
+PenSpan/
 ├── backend/         Django 5 + DRF + Celery  (API, escrow, moderation, admin)
 ├── frontend/        Vite + React 18 + TypeScript + Tailwind  (client / writer / admin UI)
 └── .venv/           Python virtualenv (already created)

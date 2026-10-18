@@ -355,7 +355,7 @@ export default function CheckMyPaper() {
                 <div className="mt-4 flex gap-2">
                   <Input
                     name="reference"
-                    placeholder="WCC-XXXXXXXX"
+                    placeholder="PSP-XXXXXXXX"
                     wrapClassName="flex-1"
                     value={trackRef}
                     onChange={(event) => setTrackRef(event.target.value.toUpperCase())}

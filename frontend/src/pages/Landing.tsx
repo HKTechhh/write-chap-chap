@@ -56,7 +56,7 @@ function Hero() {
           <h1 className="mt-7 text-balance text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-6xl animate-fade-up">
             Great writing,{' '}
             <span className="bg-gradient-to-r from-gold-300 via-gold-400 to-teal-300 bg-clip-text text-transparent">
-              chap chap
+              on time
             </span>
             .
           </h1>

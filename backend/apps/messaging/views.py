@@ -68,7 +68,7 @@ class OrderMessagesView(APIView):
                     "severity": blocked.scan_result.severity.value,
                     "masked_preview": blocked.scan_result.masked_text,
                     "guidance": (
-                        "Keep all communication and payment on Write Chap Chap. Escrow only "
+                        "Keep all communication and payment on PenSpan. Escrow only "
                         "protects you while the work and the money stay on the platform."
                     ),
                 },
