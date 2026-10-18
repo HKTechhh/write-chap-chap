@@ -272,10 +272,6 @@ MPESA_CONSUMER_SECRET = config("MPESA_CONSUMER_SECRET", default="")
 MPESA_SHORTCODE = config("MPESA_SHORTCODE", default="")
 MPESA_PASSKEY = config("MPESA_PASSKEY", default="")
 MPESA_CALLBACK_URL = config("MPESA_CALLBACK_URL", default="")
-# Paybill: leave both at their defaults. Buy Goods Till: set MPESA_SHORTCODE to the Store /
-# Head Office number, MPESA_TILL_NUMBER to the Till number, and the type to CustomerBuyGoodsOnline.
-MPESA_TRANSACTION_TYPE = config("MPESA_TRANSACTION_TYPE", default="CustomerPayBillOnline")
-MPESA_TILL_NUMBER = config("MPESA_TILL_NUMBER", default="")
 
 # B2C payouts (withdrawals sent straight to a writer's M-Pesa).
 MPESA_B2C_ENABLED = config("MPESA_B2C_ENABLED", default=False, cast=bool)
