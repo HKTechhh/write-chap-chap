@@ -222,56 +222,9 @@ cd backend
 
 ---
 
-## Deploying to Render
+## Deployment
 
-`render.yaml` is a Blueprint that provisions the whole stack in one go: Postgres, Redis, the
-Django API, the React static site, and the Celery worker + beat scheduler.
-
-1. Push this repo to GitHub (Render deploys from a connected git remote).
-2. Render Dashboard → **New → Blueprint** → pick the repo. It reads `render.yaml`.
-3. Apply. First build runs `backend/render-build.sh`: installs deps, `collectstatic`,
-   `migrate`, then `seed_demo`.
-4. After the first deploy, set `CORS_ALLOWED_ORIGINS` on **wcc-api** to the static site's URL.
-
-### Cost — the blueprint is entirely free tier
-
-| Service | Plan |
-|---|---|
-| `wcc-db` (Postgres) | free |
-| `wcc-api` (Django) | free |
-| `wcc-web` (React static site) | free |
-
-There is deliberately **no Redis and no Celery worker**. Render has no free background workers,
-and a broker with no worker behind it is worse than no broker at all: `task.delay()` would
-succeed, queue the job, and nothing would ever consume it — screening would silently never run.
-So the API sets `CELERY_TASK_ALWAYS_EAGER=True` and tasks execute inline on the request instead.
-
-What that costs you — the *scheduled* work, not the screening:
-
-- Escrow does not auto-release after the 72h review window (clients must approve manually)
-- Late-delivery fines are never applied automatically
-- Writer tiers are not recalculated nightly
-
-AI/plagiarism screening still runs on every upload; it just happens inline rather than async.
-The "SCALING UP" comment block at the bottom of `render.yaml` has the exact services to add when
-you want the scheduled jobs.
-
-Two free-tier caveats worth knowing: free Postgres on Render expires after 30 days, and free web
-services spin down when idle, so the first request after a sleep takes ~30s.
-
-### Uploads need object storage
-
-Render's disk is ephemeral — deliverables, KYC documents and dispute evidence are wiped on
-every redeploy. Set `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and
-`AWS_S3_ENDPOINT_URL` (Cloudflare R2 works and has no egress fee) and Django switches to S3
-storage automatically. Files stay private and are served through time-limited signed URLs.
-
-### Before real users
-
-- Set `SEED_DEMO=false` on **wcc-api** so demo accounts stop being recreated, and delete the
-  seeded users — they all share a published password.
-- Add `GPTZERO_API_KEY` to enable real screening.
-- Add the M-Pesa and Flutterwave credentials to take real payments.
+Production runs on a DigitalOcean droplet. See [`deploy/README.md`](./deploy/README.md).
 
 ---
 

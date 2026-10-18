@@ -1,20 +1,17 @@
 /**
  * Empty in development — Vite proxies /api to Django.
  *
- * In production this is the API service's address. Render supplies it as a
- * bare `host:port` with no scheme, which `fetch` would treat as a relative
- * path, so normalise it to an absolute https:// origin and strip any trailing
- * slash (paths already start with one).
+ * In production this is the API's address. A bare `host:port` with no scheme
+ * would be treated by `fetch` as a relative path, so normalise it to an
+ * absolute https:// origin and strip any trailing slash (paths already start
+ * with one).
  */
 /**
  * Deployed API origin, used when VITE_API_BASE_URL is absent at build time.
  *
- * Hardcoding a URL in source is not ideal, but this value has to be correct
- * inside the bundle and four separate deploys failed to get the env var there
- * — Render skipped builds, republished cached artifacts, and reported all of
- * it as success. An env var still wins when present; this only stops a
- * production build from silently shipping a frontend that cannot reach its
- * own API. Change it if the API service is renamed.
+ * An env var still wins when present; this only stops a production build from
+ * silently shipping a frontend that cannot reach its own API. The reverse
+ * proxy serves /api on the same origin as the site.
  */
 const DEPLOYED_API_ORIGIN = 'https://penspan.com'
 
@@ -25,10 +22,9 @@ function isLocalHost(): boolean {
 /**
  * A hostname the browser can actually resolve.
  *
- * Render's `property: hostport` yields an INTERNAL address — "wcc-api-5mhu:10000"
- * — with no TLD, routable only inside Render's private network. A browser given
- * that fails with ERR_NAME_NOT_RESOLVED. Anything without a dot is therefore
- * unusable from a public page, `localhost` aside.
+ * Internal service names (e.g. "api:8000") have no TLD and fail in a browser
+ * with ERR_NAME_NOT_RESOLVED. Anything without a dot is therefore unusable
+ * from a public page, `localhost` aside.
  */
 function isPubliclyResolvable(hostname: string): boolean {
   return hostname === 'localhost' || hostname.includes('.')

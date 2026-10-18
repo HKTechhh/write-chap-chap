@@ -20,23 +20,14 @@ def _as_origin(value):
 
 FRONTEND_URL = _as_origin(config("FRONTEND_URL", default="http://localhost:5173"))
 
-# Render injects the service's public hostname at runtime; without this the
-# deployed API would 400 every request with DisallowedHost.
-RENDER_EXTERNAL_HOSTNAME = config("RENDER_EXTERNAL_HOSTNAME", default="")
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-
 CSRF_TRUSTED_ORIGINS = [
     origin
-    for origin in (
-        FRONTEND_URL,
-        f"https://{RENDER_EXTERNAL_HOSTNAME}" if RENDER_EXTERNAL_HOSTNAME else "",
-    )
+    for origin in (FRONTEND_URL,)
     if origin.startswith("http")
 ]
 
 if not DEBUG:
-    # Render terminates TLS at its proxy, so Django only ever sees plain HTTP.
+    # TLS is terminated at the reverse proxy, so Django only ever sees plain HTTP.
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
     SESSION_COOKIE_SECURE = True
@@ -202,11 +193,8 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
-# The deployed frontend's origin. Kept in source alongside the dev origins
-# because relying on the host to inject it failed repeatedly — env vars
-# declared in render.yaml never reached the running service, leaving the API
-# rejecting every browser request from its own frontend. An env var still
-# overrides; this is the floor, not the ceiling. Update if the site is renamed.
+# The deployed frontend's origin, kept in source alongside the dev origins.
+# CORS_ALLOWED_ORIGINS can add more; this is the floor, not the ceiling.
 DEPLOYED_FRONTEND_ORIGIN = "https://penspan.com"
 
 CORS_ALLOWED_ORIGINS = [

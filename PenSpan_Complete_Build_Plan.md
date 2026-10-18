@@ -27,7 +27,7 @@
 | Plagiarism/AI detection | GPTZero API | Your existing choice |
 | Realtime chat | Django Channels (WebSockets) or a simple polling fallback for MVP | Order messaging, support chat |
 | Notifications | Email (SendGrid/Postmark) + WhatsApp click-to-chat + in-app | |
-| Hosting | Backend: Render/Railway/DigitalOcean; Frontend: Vercel/Netlify | Cheap to start, scales fine |
+| Hosting | DigitalOcean droplet (Docker Compose + Caddy) | Cheap to start, scales fine |
 
 ---
 

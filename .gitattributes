@@ -2,8 +2,7 @@
 * text=auto
 
 # Shell scripts MUST stay LF. A CRLF shebang fails on Linux with
-# "bad interpreter: /usr/bin/env bash^M" — which is exactly what would
-# happen to render-build.sh on deploy.
+# "bad interpreter: /usr/bin/env bash^M".
 *.sh text eol=lf
 
 # PowerShell scripts are Windows-side, keep CRLF.
