@@ -93,8 +93,8 @@ class MpesaGateway:
             "PartyB": settings.MPESA_SHORTCODE,
             "PhoneNumber": self.normalize_phone(phone),
             "CallBackURL": settings.MPESA_CALLBACK_URL,
-            "AccountReference": reference[:12],
-            "TransactionDesc": description[:60],
+            "AccountReference": "Penspan",  # shown as "Account no." on the phone; the real reference rides in TransactionDesc
+            "TransactionDesc": f"{description} {reference}"[:60],
         }
         try:
             response = requests.post(
