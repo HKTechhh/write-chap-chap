@@ -21,13 +21,13 @@
 | Frontend | React + TypeScript + Tailwind | Matches your existing stack and skillset |
 | Database | PostgreSQL | Relational integrity matters a lot here (money, orders, disputes) |
 | Async tasks | Celery + Redis | For scheduled jobs: deadline checks, auto-fines, GPTZero scans, payout batching |
-| File storage | S3-compatible (e.g. Cloudflare R2 or AWS S3) | Writer-submitted documents, revisions |
+| File storage | S3-compatible (DigitalOcean Spaces, Cloudflare R2 or AWS S3) | Writer-submitted documents, revisions |
 | Auth | Django + JWT (SimpleJWT) | Standard, works cleanly with React |
 | Payments | M-Pesa Daraja API (Kenya) + Flutterwave (cards/global) | Matches your earlier stack decision |
 | Plagiarism/AI detection | GPTZero API | Your existing choice |
 | Realtime chat | Django Channels (WebSockets) or a simple polling fallback for MVP | Order messaging, support chat |
 | Notifications | Email (SendGrid/Postmark) + WhatsApp click-to-chat + in-app | |
-| Hosting | DigitalOcean droplet (Docker Compose + Caddy) | Cheap to start, scales fine |
+| Hosting | One DigitalOcean droplet in Frankfurt (Docker Compose + Caddy for automatic HTTPS) | One server to run and pay for; resize as traffic grows. See Section 11 |
 
 ---
 
@@ -270,6 +270,60 @@ Same underlying component library and page patterns for both (so it's one codeba
 
 **Phase 4 — Growth features**
 - Subscriptions, boosted visibility, real-time chat (Channels), analytics dashboard, referral system
+
+---
+
+## 11. Hosting & Deployment (DigitalOcean)
+
+**One droplet, Docker Compose, Ubuntu 24.04, Frankfurt (`fra1`).** Runbook: `deploy/README.md`.
+
+| Container | Role |
+|---|---|
+| `caddy` | Serves the React build, proxies `/api` and `/admin`, automatic HTTPS for penspan.com and www |
+| `api` | Django + gunicorn; runs migrations on start |
+| `worker` | Celery: GPTZero scans, M-Pesa payouts |
+| `beat` | Celery beat: hourly late fines and escrow auto-release, nightly tier recalculation |
+| `redis` | Celery broker (no eviction, so queued tasks are never lost) |
+| `db` | Postgres 16 |
+
+| Phase | Droplet | Approx. cost |
+|---|---|---|
+| Testing, little traffic | 2 GB / 1 vCPU (`s-1vcpu-2gb`) with 2 GB swap | $12/month |
+| Launch, real users | 4 GB / 2 vCPU (`s-2vcpu-4gb`) | $24/month |
+| Optional | Droplet backups (about 20%), Spaces for uploads ($5/month) | |
+
+- **Backups:** nightly `pg_dump` to `/var/backups/penspan` (14 days kept) plus optional droplet backups.
+- **Uploads:** droplet disk while testing; DigitalOcean Spaces with private signed URLs before real KYC documents.
+- **Security:** cloud firewall and `ufw` allow only 22, 80 and 443; secrets live only in `.env` on the server.
+- **Scaling path:** resize to 4 GB (CPU and RAM only), then move Postgres to a Managed Database.
+
+---
+
+## 12. Build status
+
+| Item | Status |
+|---|---|
+| Auth, roles, KYC, writer tiers, strikes | Built |
+| Order lifecycle with escrow, auto-release after the review window | Built; scheduled release runs on Celery beat |
+| Bidding, including locked-price humanization bids | Built |
+| Late-delivery fines (5%/day, 25% cap, 50/50 split) | Built; hourly job runs on Celery beat |
+| GPTZero scan on every deliverable | Built; queued to the Celery worker |
+| Disputes and admin arbitration | Built |
+| Humanization orders (KES 50 per 250 words, auto word count, locked price) | Built |
+| Document Check (admin-only, KES 120, AI report + plagiarism/similarity report, always both) | Built |
+| Verified reviews (completed orders only) | Built |
+| Separate client and writer dashboards, simplified navigation | Built |
+| WhatsApp support button | Built |
+| Contact-leak guard on chat | Built |
+| Wallet, top-ups, withdrawals | Built |
+| M-Pesa STK push and Flutterwave | Built; add live credentials |
+| M-Pesa B2C payouts | Built; needs Safaricom credentials and a Daraja sandbox test |
+| Writer subscriptions | Built (model and API) |
+| PenSpan brand, logo, favicons, og-image, email base template | Built |
+| Docker, Caddy HTTPS, nightly backups, deploy scripts | Built; not yet run on a real droplet |
+| Boosted bids (paid placement) | Partial: the field exists, no purchase flow |
+| Real-time chat (Django Channels) | Not built: chat polls every 20 seconds |
+| Referral system, analytics dashboard | Not built (Phase 4) |
 
 ---
 
