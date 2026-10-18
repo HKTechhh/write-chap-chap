@@ -1,0 +1,44 @@
+{
+	# Let's Encrypt registration / expiry notices.
+	email {$ACME_EMAIL}
+}
+
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# Django: API, admin, and the static files WhiteNoise serves for them.
+	@backend path /api/* /admin/* /static/*
+	handle @backend {
+		request_body {
+			max_size 25MB
+		}
+		reverse_proxy api:8000
+	}
+
+	# Local-disk uploads. TEST PHASE ONLY: these URLs are not access-controlled.
+	# Configure Spaces (AWS_* variables) before accepting real KYC documents; with
+	# S3 storage Django hands out private signed URLs and this block goes unused.
+	handle /media/* {
+		root * /srv
+		file_server
+	}
+
+	# The React app, with SPA fallback so deep links survive a refresh.
+	handle {
+		root * /srv/www
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		try_files {path} /index.html
+		file_server
+	}
+}

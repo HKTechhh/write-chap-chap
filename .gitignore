@@ -4,6 +4,9 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 
+# Secrets (production compose file reads the repo-root .env)
+/.env
+
 # Django
 backend/.env
 backend/db.sqlite3
